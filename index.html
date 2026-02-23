@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uber Driver Profit Calculator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 Uber Driver Profit Calculator</h1>
+            <p>Track your earnings and expenses to calculate real profit</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="earnings">Earnings</button>
+            <button class="tab-btn" data-tab="expenses">Expenses</button>
+            <button class="tab-btn" data-tab="mileage">Mileage</button>
+            <button class="tab-btn" data-tab="config">Settings</button>
+            <button class="tab-btn" data-tab="summary">Summary</button>
+        </nav>
+
+        <!-- Earnings Tab -->
+        <div id="earnings" class="tab-content active">
+            <h2>Add Trip Earnings</h2>
+            <form id="earningsForm">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="earningsDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Gross Fare (₨)</label>
+                    <input type="number" id="grossFare" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Uber Commission (₨)</label>
+                    <input type="number" id="commission" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Tips (₨)</label>
+                    <input type="number" id="tips" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Trip Count</label>
+                    <input type="number" id="tripCount" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Online Hours</label>
+                    <input type="number" id="onlineHours" step="0.5" value="1" required>
+                </div>
+                <button type="submit" class="btn-primary">Add Earnings</button>
+            </form>
+
+            <h2>Earnings Records</h2>
+            <div class="table-wrapper">
+                <table id="earningsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Gross</th>
+                            <th>Commission</th>
+                            <th>Tips</th>
+                            <th>Net</th>
+                            <th>Trips</th>
+                            <th>Hours</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Expenses Tab -->
+        <div id="expenses" class="tab-content">
+            <h2>Add Expense</h2>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="expenseCategory" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="fuel">Fuel</option>
+                        <option value="parking">Parking</option>
+                        <option value="tolls">Tolls</option>
+                        <option value="carwash">Car Wash</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="lease">Lease/Loan</option>
+                        <option value="license">Vehicle License</option>
+                        <option value="internet">Internet</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="repairs">Repairs</option>
+                        <option value="tires">Tires</option>
+                        <option value="battery">Battery</option>
+                        <option value="engine">Engine Work</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₨)</label>
+                    <input type="number" id="expenseAmount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="expenseType" required>
+                        <option value="variable">Variable</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Odometer (km) <span class="optional">(optional)</span></label>
+                    <input type="number" id="expenseOdometer" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="expenseNotes" placeholder="e.g., 4 new tires">
+                </div>
+                <button type="submit" class="btn-primary">Add Expense</button>
+            </form>
+
+            <h2>Expense Records</h2>
+            <div class="table-wrapper">
+                <table id="expenseTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mileage Tab -->
+        <div id="mileage" class="tab-content">
+            <h2>Daily Mileage Tracking</h2>
+            <form id="mileageForm">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="mileageDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Odometer Start (km)</label>
+                    <input type="number" id="odometerStart" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>Odometer End (km)</label>
+                    <input type="number" id="odometerEnd" step="0.1" required>
+                </div>
+                <button type="submit" class="btn-primary">Add Mileage</button>
+            </form>
+
+            <h2>Mileage Records</h2>
+            <div class="table-wrapper">
+                <table id="mileageTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start (km)</th>
+                            <th>End (km)</th>
+                            <th>Distance (km)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="config" class="tab-content">
+            <h2>Vehicle Configuration</h2>
+            <form id="configForm">
+                <div class="form-group">
+                    <label>Fuel Price per Liter (₨)</label>
+                    <input type="number" id="fuelPrice" step="0.01" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Average Fuel Efficiency (km/liter)</label>
+                    <input type="number" id="kmPerLiter" step="0.1" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Service Interval (km)</label>
+                    <input type="number" id="serviceInterval" step="1" value="10000" required>
+                </div>
+                <button type="submit" class="btn-primary">Save Settings</button>
+            </form>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="summary" class="tab-content">
+            <h2>Monthly Profit & Loss Statement</h2>
+            
+            <div class="summary-filters">
+                <label>Month & Year:</label>
+                <input type="month" id="summaryMonth">
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Total Revenue</h3>
+                    <p class="summary-value" id="totalRevenue">₨ 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Expenses</h3>
+                    <p class="summary-value expense" id="totalExpenses">₨ 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Net Profit</h3>
+                    <p class="summary-value" id="netProfit">₨ 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Profit Margin</h3>
+                    <p class="summary-value" id="profitMargin">0%</p>
+                </div>
+            </div>
+
+            <div class="summary-section">
+                <h3>Expense Breakdown</h3>
+                <div id="expenseBreakdown" class="breakdown-table"></div>
+            </div>
+
+            <div class="summary-section">
+                <h3>Key Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <label>Total KM</label>
+                        <p id="totalKm">0 km</p>
+                    </div>
+                    <div class="metric-card">
+                        <label>Cost per KM</label>
+                        <p id="costPerKm">₨ 0.00</p>
+                    </div>
+                    <div class="metric-card">
+                        <label>Profit per KM</label>
+                        <p id="profitPerKm">₨ 0.00</p>
+                    </div>
+                    <div class="metric-card">
+                        <label>Hourly Profit</label>
+                        <p id="hourlyProfit">₨ 0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="export-section">
+                <button id="exportEarnings" class="btn-secondary">Export Earnings (CSV)</button>
+                <button id="exportExpenses" class="btn-secondary">Export Expenses (CSV)</button>
+                <button id="exportSummary" class="btn-secondary">Export Summary (CSV)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/storage.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
