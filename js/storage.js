@@ -54,6 +54,12 @@ const Storage = {
         this.set('earnings', earnings);
     },
 
+    updateEarning(id, earning) {
+        let earnings = this.get('earnings') || [];
+        earnings = earnings.map(e => e.id === id ? { ...earning, id } : e);
+        this.set('earnings', earnings);
+    },
+
     // Expenses
     addExpense(expense) {
         const expenses = this.get('expenses') || [];
@@ -73,6 +79,12 @@ const Storage = {
         this.set('expenses', expenses);
     },
 
+    updateExpense(id, expense) {
+        let expenses = this.get('expenses') || [];
+        expenses = expenses.map(e => e.id === id ? { ...expense, id } : e);
+        this.set('expenses', expenses);
+    },
+
     // Mileage
     addMileage(mileage) {
         const mileages = this.get('mileage') || [];
@@ -89,6 +101,12 @@ const Storage = {
     deleteMileage(id) {
         let mileages = this.get('mileage') || [];
         mileages = mileages.filter(m => m.id !== id);
+        this.set('mileage', mileages);
+    },
+
+    updateMileage(id, mileage) {
+        let mileages = this.get('mileage') || [];
+        mileages = mileages.map(m => m.id === id ? { ...mileage, id } : m);
         this.set('mileage', mileages);
     },
 

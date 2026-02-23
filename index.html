@@ -261,6 +261,124 @@
         </div>
     </div>
 
+    <!-- Edit Modals -->
+    
+    <!-- Edit Earnings Modal -->
+    <div id="editEarningsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="UI.closeModal('editEarningsModal')">&times;</span>
+            <h2>Edit Earnings</h2>
+            <form id="editEarningsForm">
+                <input type="hidden" id="editEarningsId">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="editEarningsDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Gross Fare (₨)</label>
+                    <input type="number" id="editGrossFare" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Uber Commission (₨)</label>
+                    <input type="number" id="editCommission" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Tips (₨)</label>
+                    <input type="number" id="editTips" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Trip Count</label>
+                    <input type="number" id="editTripCount" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Online Hours</label>
+                    <input type="number" id="editOnlineHours" step="0.5" value="1" required>
+                </div>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Expense Modal -->
+    <div id="editExpenseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="UI.closeModal('editExpenseModal')">&times;</span>
+            <h2>Edit Expense</h2>
+            <form id="editExpenseForm">
+                <input type="hidden" id="editExpenseId">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="editExpenseDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="editExpenseCategory" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="fuel">Fuel</option>
+                        <option value="parking">Parking</option>
+                        <option value="tolls">Tolls</option>
+                        <option value="carwash">Car Wash</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="lease">Lease/Loan</option>
+                        <option value="license">Vehicle License</option>
+                        <option value="internet">Internet</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="repairs">Repairs</option>
+                        <option value="tires">Tires</option>
+                        <option value="battery">Battery</option>
+                        <option value="engine">Engine Work</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₨)</label>
+                    <input type="number" id="editExpenseAmount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="editExpenseType" required>
+                        <option value="variable">Variable</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Odometer (km) <span class="optional">(optional)</span></label>
+                    <input type="number" id="editExpenseOdometer" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="editExpenseNotes" placeholder="e.g., 4 new tires">
+                </div>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Mileage Modal -->
+    <div id="editMileageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="UI.closeModal('editMileageModal')">&times;</span>
+            <h2>Edit Mileage</h2>
+            <form id="editMileageForm">
+                <input type="hidden" id="editMileageId">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="editMileageDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Odometer Start (km)</label>
+                    <input type="number" id="editOdometerStart" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>Odometer End (km)</label>
+                    <input type="number" id="editOdometerEnd" step="0.1" required>
+                </div>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/storage.js"></script>
     <script src="js/calculations.js"></script>

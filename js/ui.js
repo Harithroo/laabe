@@ -13,7 +13,27 @@ const UI = {
         this.setupConfigForm();
         this.setupExportButtons();
         this.setupSummaryMonth();
+        this.setupEditForms();
+        this.setupModalClosers();
         this.renderAllData();
+    },
+
+    // Modal Functions
+    openModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    },
+
+    closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    },
+
+    setupModalClosers() {
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
     },
 
     // Tab Navigation
@@ -97,7 +117,10 @@ const UI = {
                 <td><strong>₨ ${netEarned.toFixed(2)}</strong></td>
                 <td>${earning.tripCount}</td>
                 <td>${earning.onlineHours}</td>
-                <td><button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button></td>
+                <td>
+                    <button class="btn-edit" onclick="UI.openEditEarningsModal('${earning.id}')">Edit</button>
+                    <button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -155,7 +178,10 @@ const UI = {
                 <td>₨ ${expense.amount.toFixed(2)}</td>
                 <td><span class="badge badge-${expense.type}">${expense.type}</span></td>
                 <td>${expense.notes}</td>
-                <td><button class="btn-delete" onclick="UI.deleteExpense('${expense.id}')">Delete</button></td>
+                <td>
+                    <button class="btn-edit" onclick="UI.openEditExpenseModal('${expense.id}')">Edit</button>
+                    <button class="btn-delete" onclick="UI.deleteExpense('${expense.id}')">Delete</button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -238,7 +264,10 @@ const UI = {
                 <td>${mileage.odometerStart.toFixed(1)}</td>
                 <td>${mileage.odometerEnd.toFixed(1)}</td>
                 <td><strong>${distance.toFixed(1)}</strong></td>
-                <td><button class="btn-delete" onclick="UI.deleteMileage('${mileage.id}')">Delete</button></td>
+                <td>
+                    <button class="btn-edit" onclick="UI.openEditMileageModal('${mileage.id}')">Edit</button>
+                    <button class="btn-delete" onclick="UI.deleteMileage('${mileage.id}')">Delete</button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -365,6 +394,117 @@ const UI = {
             const [year, month] = input.split('-');
             Exporter.exportSummary(parseInt(year), parseInt(month) - 1);
         });
+    },
+
+    // Setup Edit Forms
+    setupEditForms() {
+        // Edit Earnings Form
+        document.getElementById('editEarningsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editEarningsId').value;
+            const earning = {
+                date: document.getElementById('editEarningsDate').value,
+                grossFare: parseFloat(document.getElementById('editGrossFare').value),
+                commission: parseFloat(document.getElementById('editCommission').value),
+                tips: parseFloat(document.getElementById('editTips').value) || 0,
+                tripCount: parseInt(document.getElementById('editTripCount').value),
+                onlineHours: parseFloat(document.getElementById('editOnlineHours').value)
+            };
+            Storage.updateEarning(id, earning);
+            this.closeModal('editEarningsModal');
+            this.renderEarningsTable();
+            this.updateSummary();
+            alert('Earning updated successfully!');
+        });
+
+        // Edit Expense Form
+        document.getElementById('editExpenseForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editExpenseId').value;
+            const expense = {
+                date: document.getElementById('editExpenseDate').value,
+                category: document.getElementById('editExpenseCategory').value,
+                amount: parseFloat(document.getElementById('editExpenseAmount').value),
+                type: document.getElementById('editExpenseType').value,
+                odometer: document.getElementById('editExpenseOdometer').value || null,
+                notes: document.getElementById('editExpenseNotes').value || ''
+            };
+            Storage.updateExpense(id, expense);
+            this.closeModal('editExpenseModal');
+            this.renderExpenseTable();
+            this.updateSummary();
+            alert('Expense updated successfully!');
+        });
+
+        // Edit Mileage Form
+        document.getElementById('editMileageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editMileageId').value;
+            const start = parseFloat(document.getElementById('editOdometerStart').value);
+            const end = parseFloat(document.getElementById('editOdometerEnd').value);
+
+            if (end <= start) {
+                alert('Odometer end must be greater than start!');
+                return;
+            }
+
+            const mileage = {
+                date: document.getElementById('editMileageDate').value,
+                odometerStart: start,
+                odometerEnd: end
+            };
+            Storage.updateMileage(id, mileage);
+            this.closeModal('editMileageModal');
+            this.renderMileageTable();
+            this.updateSummary();
+            alert('Mileage updated successfully!');
+        });
+    },
+
+    // Open Edit Modal Functions
+    openEditEarningsModal(id) {
+        const earnings = Storage.getEarnings();
+        const earning = earnings.find(e => e.id === id);
+        
+        if (earning) {
+            document.getElementById('editEarningsId').value = id;
+            document.getElementById('editEarningsDate').value = earning.date;
+            document.getElementById('editGrossFare').value = earning.grossFare;
+            document.getElementById('editCommission').value = earning.commission;
+            document.getElementById('editTips').value = earning.tips || 0;
+            document.getElementById('editTripCount').value = earning.tripCount;
+            document.getElementById('editOnlineHours').value = earning.onlineHours;
+            this.openModal('editEarningsModal');
+        }
+    },
+
+    openEditExpenseModal(id) {
+        const expenses = Storage.getExpenses();
+        const expense = expenses.find(e => e.id === id);
+        
+        if (expense) {
+            document.getElementById('editExpenseId').value = id;
+            document.getElementById('editExpenseDate').value = expense.date;
+            document.getElementById('editExpenseCategory').value = expense.category;
+            document.getElementById('editExpenseAmount').value = expense.amount;
+            document.getElementById('editExpenseType').value = expense.type;
+            document.getElementById('editExpenseOdometer').value = expense.odometer || '';
+            document.getElementById('editExpenseNotes').value = expense.notes || '';
+            this.openModal('editExpenseModal');
+        }
+    },
+
+    openEditMileageModal(id) {
+        const mileages = Storage.getMileage();
+        const mileage = mileages.find(m => m.id === id);
+        
+        if (mileage) {
+            document.getElementById('editMileageId').value = id;
+            document.getElementById('editMileageDate').value = mileage.date;
+            document.getElementById('editOdometerStart').value = mileage.odometerStart;
+            document.getElementById('editOdometerEnd').value = mileage.odometerEnd;
+            this.openModal('editMileageModal');
+        }
     },
 
     // Render all data on page load
