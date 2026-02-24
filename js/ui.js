@@ -80,11 +80,9 @@ const UI = {
 
             const earning = {
                 date: document.getElementById('earningsDate').value,
-                grossFare: parseFloat(document.getElementById('grossFare').value),
-                commission: parseFloat(document.getElementById('commission').value),
-                tips: parseFloat(document.getElementById('tips').value) || 0,
-                tripCount: parseInt(document.getElementById('tripCount').value),
-                onlineHours: parseFloat(document.getElementById('onlineHours').value)
+                totalRideDistance: parseFloat(document.getElementById('grossFare').value),
+                totalIncome: parseFloat(document.getElementById('commission').value),
+                numberOfTrips: parseInt(document.getElementById('tripCount').value)
             };
 
             Storage.addEarning(earning);
@@ -107,16 +105,15 @@ const UI = {
         }
 
         earnings.forEach(earning => {
-            const netEarned = earning.grossFare - earning.commission + earning.tips;
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${earning.date}</td>
-                <td>₨ ${earning.grossFare.toFixed(2)}</td>
-                <td>₨ ${earning.commission.toFixed(2)}</td>
-                <td>₨ ${earning.tips.toFixed(2)}</td>
-                <td><strong>₨ ${netEarned.toFixed(2)}</strong></td>
-                <td>${earning.tripCount}</td>
-                <td>${earning.onlineHours}</td>
+                <td>${earning.totalRideDistance.toFixed(1)} km</td>
+                <td>₨ ${earning.totalIncome.toFixed(2)}</td>
+                <td>${earning.numberOfTrips}</td>
+                <td></td>
+                <td></td>
+                <td></td>
                 <td>
                     <button class="btn-edit" onclick="UI.openEditEarningsModal('${earning.id}')">Edit</button>
                     <button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button>
@@ -247,37 +244,14 @@ const UI = {
 
     // Render Mileage Table
     renderMileageTable() {
-        const mileages = Storage.getMileage();
-        const tbody = document.querySelector('#mileageTable tbody');
-        tbody.innerHTML = '';
-
-        if (mileages.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No mileage recorded yet</td></tr>';
-            return;
-        }
-
-        mileages.forEach(mileage => {
-            const distance = mileage.odometerEnd - mileage.odometerStart;
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${mileage.date}</td>
-                <td>${mileage.odometerStart.toFixed(1)}</td>
-                <td>${mileage.odometerEnd.toFixed(1)}</td>
-                <td><strong>${distance.toFixed(1)}</strong></td>
-                <td>
-                    <button class="btn-edit" onclick="UI.openEditMileageModal('${mileage.id}')">Edit</button>
-                    <button class="btn-delete" onclick="UI.deleteMileage('${mileage.id}')">Delete</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
+        // Mileage is now tracked via ride distance in earnings
+        // This function is kept for backward compatibility
+        return;
     },
 
     deleteMileage(id) {
-        if (confirm('Are you sure you want to delete this mileage record?')) {
-            Storage.deleteMileage(id);
-            this.renderMileageTable();
-        }
+        // Mileage deletion is deprecated
+        return;
     },
 
     // Config Form
@@ -285,17 +259,23 @@ const UI = {
         const form = document.getElementById('configForm');
         const config = Storage.getConfig();
 
-        document.getElementById('fuelPrice').value = config.fuelPrice;
-        document.getElementById('kmPerLiter').value = config.kmPerLiter;
-        document.getElementById('serviceInterval').value = config.serviceInterval;
+        document.getElementById('fuelPrice').value = config.baseCommuteDistance;
+        document.getElementById('kmPerLiter').value = config.driverPassCost;
+        document.getElementById('serviceInterval').value = config.fuelCostPerKm;
+        
+        const maintenanceCostField = document.getElementById('maintenanceCost');
+        if (maintenanceCostField) {
+            maintenanceCostField.value = config.maintenanceCostPerKm;
+        }
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
             const newConfig = {
-                fuelPrice: parseFloat(document.getElementById('fuelPrice').value),
-                kmPerLiter: parseFloat(document.getElementById('kmPerLiter').value),
-                serviceInterval: parseFloat(document.getElementById('serviceInterval').value)
+                baseCommuteDistance: parseFloat(document.getElementById('fuelPrice').value),
+                driverPassCost: parseFloat(document.getElementById('kmPerLiter').value),
+                fuelCostPerKm: parseFloat(document.getElementById('serviceInterval').value),
+                maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 0
             };
 
             Storage.setConfig(newConfig);
@@ -327,52 +307,55 @@ const UI = {
 
         const summary = Calculations.getMonthlySummary(yearNum, monthNum);
 
-        // Update summary cards
-        document.getElementById('totalRevenue').textContent = `₨ ${summary.totalRevenue.toFixed(2)}`;
-        document.getElementById('totalExpenses').textContent = `₨ ${summary.totalExpenses.toFixed(2)}`;
-        document.getElementById('netProfit').textContent = `₨ ${summary.netProfit.toFixed(2)}`;
-        document.getElementById('profitMargin').textContent = `${summary.profitMargin.toFixed(2)}%`;
+        // Update summary cards with new metrics
+        document.getElementById('totalRevenue').textContent = `₨ ${summary.totalRideIncome.toFixed(2)}`;
+        document.getElementById('totalExpenses').textContent = `₨ ${(summary.totalFuelCost + summary.allocatedDriverPassCost + summary.totalMaintenanceCost).toFixed(2)}`;
+        document.getElementById('netProfit').textContent = `₨ ${summary.trueNetProfit.toFixed(2)}`;
+        document.getElementById('profitMargin').textContent = `${summary.totalRideIncome > 0 ? ((summary.trueNetProfit / summary.totalRideIncome) * 100).toFixed(2) : 0}%`;
 
-        // Update metrics
-        document.getElementById('totalKm').textContent = `${summary.totalKm.toFixed(1)} km`;
-        document.getElementById('costPerKm').textContent = `₨ ${summary.costPerKm.toFixed(2)}`;
+        // Update metrics for new model
+        document.getElementById('totalKm').textContent = `${summary.totalRideDistance.toFixed(1)} km`;
+        document.getElementById('costPerKm').textContent = `₨ ${(summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance).toFixed(2) : 0}`;
         document.getElementById('profitPerKm').textContent = `₨ ${summary.profitPerKm.toFixed(2)}`;
-        document.getElementById('hourlyProfit').textContent = `₨ ${summary.hourlyProfit.toFixed(2)}`;
+        document.getElementById('hourlyProfit').textContent = `₨ ${summary.profitPerDay.toFixed(2)} / day`;
 
-        // Update expense breakdown
-        this.renderExpenseBreakdown(summary.expensesByCategory);
+        // Show additional metrics
+        this.renderNewMetricsBreakdown(summary);
     },
 
-    // Render Expense Breakdown
-    renderExpenseBreakdown(breakdown) {
+    // Render new metrics breakdown
+    renderNewMetricsBreakdown(summary) {
         const container = document.getElementById('expenseBreakdown');
         container.innerHTML = '';
 
-        if (Object.keys(breakdown).length === 0) {
-            container.innerHTML = '<p style="color: #999;">No expenses recorded for this month</p>';
-            return;
-        }
-
-        const items = Object.entries(breakdown)
-            .sort((a, b) => b[1] - a[1])
-            .map(([category, amount]) => {
-                return `
-                    <div class="breakdown-item">
-                        <span>${this.getCategoryLabel(category)}</span>
-                        <span>₨ ${amount.toFixed(2)}</span>
-                    </div>
-                `;
-            })
-            .join('');
-
-        const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0);
-
-        container.innerHTML = items + `
+        const items = `
+            <div class="breakdown-item">
+                <span>Total Ride Income</span>
+                <span>₨ ${summary.totalRideIncome.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Total Extra Distance</span>
+                <span>${summary.totalExtraDistance.toFixed(1)} km</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Fuel Cost (extra)</span>
+                <span>₨ ${summary.totalFuelCost.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Driver Pass Cost</span>
+                <span>₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Maintenance Cost</span>
+                <span>₨ ${summary.totalMaintenanceCost.toFixed(2)}</span>
+            </div>
             <div class="breakdown-item total">
-                <span>Total Expenses</span>
-                <span>₨ ${total.toFixed(2)}</span>
+                <span>True Net Profit</span>
+                <span>₨ ${summary.trueNetProfit.toFixed(2)}</span>
             </div>
         `;
+
+        container.innerHTML = items;
     },
 
     // Setup Export Buttons
@@ -404,11 +387,9 @@ const UI = {
             const id = document.getElementById('editEarningsId').value;
             const earning = {
                 date: document.getElementById('editEarningsDate').value,
-                grossFare: parseFloat(document.getElementById('editGrossFare').value),
-                commission: parseFloat(document.getElementById('editCommission').value),
-                tips: parseFloat(document.getElementById('editTips').value) || 0,
-                tripCount: parseInt(document.getElementById('editTripCount').value),
-                onlineHours: parseFloat(document.getElementById('editOnlineHours').value)
+                totalRideDistance: parseFloat(document.getElementById('editGrossFare').value),
+                totalIncome: parseFloat(document.getElementById('editCommission').value),
+                numberOfTrips: parseInt(document.getElementById('editTripCount').value)
             };
             Storage.updateEarning(id, earning);
             this.closeModal('editEarningsModal');
@@ -436,29 +417,14 @@ const UI = {
             alert('Expense updated successfully!');
         });
 
-        // Edit Mileage Form
-        document.getElementById('editMileageForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editMileageId').value;
-            const start = parseFloat(document.getElementById('editOdometerStart').value);
-            const end = parseFloat(document.getElementById('editOdometerEnd').value);
-
-            if (end <= start) {
-                alert('Odometer end must be greater than start!');
-                return;
-            }
-
-            const mileage = {
-                date: document.getElementById('editMileageDate').value,
-                odometerStart: start,
-                odometerEnd: end
-            };
-            Storage.updateMileage(id, mileage);
-            this.closeModal('editMileageModal');
-            this.renderMileageTable();
-            this.updateSummary();
-            alert('Mileage updated successfully!');
-        });
+        // Edit Mileage Form (stub - mileage removed from new model)
+        if (document.getElementById('editMileageForm')) {
+            document.getElementById('editMileageForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                alert('Mileage tracking is no longer used. Use ride distance in earnings instead.');
+                this.closeModal('editMileageModal');
+            });
+        }
     },
 
     // Open Edit Modal Functions
@@ -469,11 +435,9 @@ const UI = {
         if (earning) {
             document.getElementById('editEarningsId').value = id;
             document.getElementById('editEarningsDate').value = earning.date;
-            document.getElementById('editGrossFare').value = earning.grossFare;
-            document.getElementById('editCommission').value = earning.commission;
-            document.getElementById('editTips').value = earning.tips || 0;
-            document.getElementById('editTripCount').value = earning.tripCount;
-            document.getElementById('editOnlineHours').value = earning.onlineHours;
+            document.getElementById('editGrossFare').value = earning.totalRideDistance;
+            document.getElementById('editCommission').value = earning.totalIncome;
+            document.getElementById('editTripCount').value = earning.numberOfTrips;
             this.openModal('editEarningsModal');
         }
     },
@@ -495,23 +459,14 @@ const UI = {
     },
 
     openEditMileageModal(id) {
-        const mileages = Storage.getMileage();
-        const mileage = mileages.find(m => m.id === id);
-        
-        if (mileage) {
-            document.getElementById('editMileageId').value = id;
-            document.getElementById('editMileageDate').value = mileage.date;
-            document.getElementById('editOdometerStart').value = mileage.odometerStart;
-            document.getElementById('editOdometerEnd').value = mileage.odometerEnd;
-            this.openModal('editMileageModal');
-        }
+        // Mileage editing is deprecated - track distance via earnings instead
+        alert('Mileage tracking is no longer used. Use ride distance in the Earnings tab instead.');
     },
 
     // Render all data on page load
     renderAllData() {
         this.renderEarningsTable();
         this.renderExpenseTable();
-        this.renderMileageTable();
         this.updateSummary();
     }
 };
