@@ -89,5 +89,146 @@ const Exporter = {
         csvContent += `Active Driving Days,${summary.activeDrivingDays}\n`;
 
         this.downloadCSV(csvContent, `Summary_${monthYear}.csv`);
+    },
+
+    // Parse CSV string to array
+    parseCSV(csvContent) {
+        const lines = csvContent.trim().split('\n');
+        if (lines.length < 2) return { headers: [], data: [] };
+
+        const headers = lines[0].split(',').map(h => h.trim());
+        const data = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const values = [];
+            let current = '';
+            let insideQuotes = false;
+
+            for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                    insideQuotes = !insideQuotes;
+                } else if (char === ',' && !insideQuotes) {
+                    values.push(current.trim().replace(/^"(.*)"$/, '$1'));
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim().replace(/^"(.*)"$/, '$1'));
+
+            const obj = {};
+            headers.forEach((header, index) => {
+                obj[header] = values[index] || '';
+            });
+            data.push(obj);
+        }
+
+        return { headers, data };
+    },
+
+    // Import earnings from CSV
+    importEarnings(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target.result;
+                const { headers, data } = this.parseCSV(content);
+
+                if (!headers.includes('Date') || !headers.includes('Ride Distance (km)') || !headers.includes('Total Income')) {
+                    alert('❌ Invalid earnings file format. Expected columns: Date, Ride Distance (km), Total Income, Number of Trips');
+                    return;
+                }
+
+                let imported = 0;
+                data.forEach(row => {
+                    try {
+                        const earning = {
+                            date: row['Date'],
+                            totalRideDistance: parseFloat(row['Ride Distance (km)']) || 0,
+                            totalIncome: parseFloat(row['Total Income']) || 0,
+                            numberOfTrips: parseInt(row['Number of Trips']) || 0
+                        };
+
+                        if (earning.date && (earning.totalRideDistance > 0 || earning.totalIncome > 0)) {
+                            Storage.addEarning(earning);
+                            imported++;
+                        }
+                    } catch (err) {
+                        console.error('Error importing row:', row, err);
+                    }
+                });
+
+                if (imported > 0) {
+                    UI.renderEarningsTable();
+                    UI.updateSummary();
+                    alert(`✓ Successfully imported ${imported} earning(s)!`);
+                } else {
+                    alert('⚠️ No valid earnings found in file.');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('❌ Error importing file: ' + error.message);
+            }
+        };
+        reader.onerror = () => {
+            alert('❌ Error reading file');
+        };
+        reader.readAsText(file);
+    },
+
+    // Import expenses from CSV
+    importExpenses(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target.result;
+                const { headers, data } = this.parseCSV(content);
+
+                if (!headers.includes('Date') || !headers.includes('Category') || !headers.includes('Amount')) {
+                    alert('❌ Invalid expenses file format. Expected columns: Date, Category, Amount, Type, Notes, Odometer');
+                    return;
+                }
+
+                let imported = 0;
+                data.forEach(row => {
+                    try {
+                        const expense = {
+                            date: row['Date'],
+                            category: row['Category'],
+                            amount: parseFloat(row['Amount']) || 0,
+                            type: row['Type'] || 'variable',
+                            notes: row['Notes'] || '',
+                            odometer: row['Odometer'] ? parseFloat(row['Odometer']) : null
+                        };
+
+                        if (expense.date && expense.amount > 0) {
+                            Storage.addExpense(expense);
+                            imported++;
+                        }
+                    } catch (err) {
+                        console.error('Error importing row:', row, err);
+                    }
+                });
+
+                if (imported > 0) {
+                    UI.renderExpenseTable();
+                    UI.updateSummary();
+                    alert(`✓ Successfully imported ${imported} expense(s)!`);
+                } else {
+                    alert('⚠️ No valid expenses found in file.');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('❌ Error importing file: ' + error.message);
+            }
+        };
+        reader.onerror = () => {
+            alert('❌ Error reading file');
+        };
+        reader.readAsText(file);
     }
 };

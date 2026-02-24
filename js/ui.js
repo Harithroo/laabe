@@ -11,7 +11,9 @@ const UI = {
         this.setupExpenseForm();
         this.setupMileageForm();
         this.setupConfigForm();
+        this.setupClearStorage();
         this.setupExportButtons();
+        this.setupImportButtons();
         this.setupSummaryMonth();
         this.setupEditForms();
         this.setupModalClosers();
@@ -97,29 +99,42 @@ const UI = {
     renderEarningsTable() {
         const earnings = Storage.getEarnings();
         const tbody = document.querySelector('#earningsTable tbody');
+        
+        if (!tbody) return; // Safety check
+
         tbody.innerHTML = '';
 
-        if (earnings.length === 0) {
+        if (!earnings || earnings.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">No earnings recorded yet</td></tr>';
             return;
         }
 
         earnings.forEach(earning => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${earning.date}</td>
-                <td>${earning.totalRideDistance.toFixed(1)} km</td>
-                <td>₨ ${earning.totalIncome.toFixed(2)}</td>
-                <td>${earning.numberOfTrips}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>
-                    <button class="btn-edit" onclick="UI.openEditEarningsModal('${earning.id}')">Edit</button>
-                    <button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button>
-                </td>
-            `;
-            tbody.appendChild(row);
+            try {
+                // Validate earning data
+                const date = earning.date || 'N/A';
+                const distance = parseFloat(earning.totalRideDistance) || 0;
+                const income = parseFloat(earning.totalIncome) || 0;
+                const trips = parseInt(earning.numberOfTrips) || 0;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${distance.toFixed(1)} km</td>
+                    <td>₨ ${income.toFixed(2)}</td>
+                    <td>${trips}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>
+                        <button class="btn-edit" onclick="UI.openEditEarningsModal('${earning.id}')">Edit</button>
+                        <button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            } catch (e) {
+                console.error('Error rendering earning row:', e, earning);
+            }
         });
     },
 
@@ -160,27 +175,34 @@ const UI = {
     renderExpenseTable() {
         const expenses = Storage.getExpenses();
         const tbody = document.querySelector('#expenseTable tbody');
+        
+        if (!tbody) return; // Safety check
+        
         tbody.innerHTML = '';
 
-        if (expenses.length === 0) {
+        if (!expenses || expenses.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No expenses recorded yet</td></tr>';
             return;
         }
 
         expenses.forEach(expense => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${expense.date}</td>
-                <td>${this.getCategoryLabel(expense.category)}</td>
-                <td>₨ ${expense.amount.toFixed(2)}</td>
-                <td><span class="badge badge-${expense.type}">${expense.type}</span></td>
-                <td>${expense.notes}</td>
-                <td>
-                    <button class="btn-edit" onclick="UI.openEditExpenseModal('${expense.id}')">Edit</button>
-                    <button class="btn-delete" onclick="UI.deleteExpense('${expense.id}')">Delete</button>
-                </td>
-            `;
-            tbody.appendChild(row);
+            try {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${expense.date || 'N/A'}</td>
+                    <td>${this.getCategoryLabel(expense.category)}</td>
+                    <td>₨ ${parseFloat(expense.amount || 0).toFixed(2)}</td>
+                    <td><span class="badge badge-${expense.type}">${expense.type}</span></td>
+                    <td>${expense.notes || ''}</td>
+                    <td>
+                        <button class="btn-edit" onclick="UI.openEditExpenseModal('${expense.id}')">Edit</button>
+                        <button class="btn-delete" onclick="UI.deleteExpense('${expense.id}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            } catch (e) {
+                console.error('Error rendering expense row:', e, expense);
+            }
         });
     },
 
@@ -283,6 +305,22 @@ const UI = {
         });
     },
 
+    // Setup Clear Storage
+    setupClearStorage() {
+        const clearBtn = document.getElementById('clearStorageBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (confirm('⚠️  Are you absolutely sure? This will delete ALL saved data (earnings, expenses, settings). This action cannot be undone.')) {
+                    if (confirm('Click OK again to confirm you want to delete everything.')) {
+                        Storage.clearAll();
+                        this.renderAllData();
+                        alert('✓ All data has been cleared successfully!');
+                    }
+                }
+            });
+        }
+    },
+
     // Setup Summary Month Picker
     setupSummaryMonth() {
         const input = document.getElementById('summaryMonth');
@@ -377,6 +415,42 @@ const UI = {
             const [year, month] = input.split('-');
             Exporter.exportSummary(parseInt(year), parseInt(month) - 1);
         });
+    },
+
+    // Setup Import Buttons
+    setupImportButtons() {
+        const importEarningsBtn = document.getElementById('importEarningsBtn');
+        const importEarningsFile = document.getElementById('importEarningsFile');
+        const importExpensesBtn = document.getElementById('importExpensesBtn');
+        const importExpensesFile = document.getElementById('importExpensesFile');
+
+        if (importEarningsBtn && importEarningsFile) {
+            importEarningsBtn.addEventListener('click', () => {
+                importEarningsFile.click();
+            });
+
+            importEarningsFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    Exporter.importEarnings(e.target.files[0]);
+                    // Reset file input
+                    e.target.value = '';
+                }
+            });
+        }
+
+        if (importExpensesBtn && importExpensesFile) {
+            importExpensesBtn.addEventListener('click', () => {
+                importExpensesFile.click();
+            });
+
+            importExpensesFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    Exporter.importExpenses(e.target.files[0]);
+                    // Reset file input
+                    e.target.value = '';
+                }
+            });
+        }
     },
 
     // Setup Edit Forms

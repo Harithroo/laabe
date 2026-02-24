@@ -192,6 +192,12 @@
                 </div>
                 <button type="submit" class="btn-primary">Save Settings</button>
             </form>
+
+            <div class="danger-zone">
+                <h3>Danger Zone</h3>
+                <p>Clear all saved data including earnings, expenses, and settings.</p>
+                <button id="clearStorageBtn" class="btn-delete">Clear All Data</button>
+            </div>
         </div>
 
         <!-- Summary Tab -->
@@ -253,6 +259,15 @@
                 <button id="exportEarnings" class="btn-secondary">Export Earnings (CSV)</button>
                 <button id="exportExpenses" class="btn-secondary">Export Expenses (CSV)</button>
                 <button id="exportSummary" class="btn-secondary">Export Summary (CSV)</button>
+            </div>
+
+            <div class="import-section">
+                <h3>Import Data</h3>
+                <p>Restore your earnings or expenses from exported CSV files.</p>
+                <button id="importEarningsBtn" class="btn-secondary">Import Earnings (CSV)</button>
+                <button id="importExpensesBtn" class="btn-secondary">Import Expenses (CSV)</button>
+                <input type="file" id="importEarningsFile" accept=".csv" style="display: none;">
+                <input type="file" id="importExpensesFile" accept=".csv" style="display: none;">
             </div>
         </div>
     </div>
