@@ -6,6 +6,9 @@
 const Storage = {
     // Initialize default config
     initDefaults() {
+        // Migrate from old data format if needed
+        this.migrateOldData();
+
         if (!this.get('config')) {
             this.set('config', {
                 baseCommuteDistance: 16,      // km per day
@@ -19,6 +22,24 @@ const Storage = {
         }
         if (!this.get('expenses')) {
             this.set('expenses', []);
+        }
+    },
+
+    // Migrate old data format to new format
+    migrateOldData() {
+        try {
+            const oldEarnings = this.get('earnings');
+            if (oldEarnings && oldEarnings.length > 0) {
+                const firstEarning = oldEarnings[0];
+                // Check if it's old format (has grossFare, commission, etc.)
+                if (firstEarning.grossFare !== undefined && firstEarning.totalRideDistance === undefined) {
+                    console.log('Migrating old earnings format...');
+                    // Old format detected, clear it - user should re-enter with new format
+                    this.set('earnings', []);
+                }
+            }
+        } catch (e) {
+            console.error('Error during migration:', e);
         }
     },
 
