@@ -370,30 +370,29 @@ const UI = {
 
         const totalCosts = summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost;
         const items = `
-            <div class="breakdown-item income-row">
-                <span><strong>Total Ride Income</strong></span>
-                <span><strong>₨ ${summary.totalRideIncome.toFixed(2)}</strong></span>
+            <div class="breakdown-item income-row" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6;">
+                <span><strong>Income</strong></span>
+                <span style="color: #10b981;"><strong>₨ ${summary.totalRideIncome.toFixed(2)}</strong></span>
             </div>
-            <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
-            <div class="breakdown-item">
+            <div class="breakdown-item" style="margin-top: 10px;">
                 <span>Fuel Cost (@ ₨${(summary.totalFuelCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
-                <span>₨ ${summary.totalFuelCost.toFixed(2)}</span>
+                <span>-₨ ${summary.totalFuelCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item">
-                <span>Maintenance Cost (@ ₨${(summary.totalMaintenanceCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
-                <span>₨ ${summary.totalMaintenanceCost.toFixed(2)}</span>
+                <span>Maintenance (@ ₨${(summary.totalMaintenanceCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
+                <span>-₨ ${summary.totalMaintenanceCost.toFixed(2)}</span>
             </div>
-            <div class="breakdown-item">
+            <div class="breakdown-item" style="margin-bottom: 10px;">
                 <span>Driver Pass</span>
-                <span>₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
+                <span>-₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
             </div>
-            <div class="breakdown-item" style="padding-top: 10px; border-top: 1px solid #ddd;">
+            <div class="breakdown-item" style="padding: 12px 0; border-top: 2px solid #e2e8f0; border-bottom: 2px solid #e2e8f0; font-weight: 600; margin-bottom: 10px;">
                 <span>Total Costs</span>
-                <span>₨ ${totalCosts.toFixed(2)}</span>
+                <span>-₨ ${totalCosts.toFixed(2)}</span>
             </div>
-            <div class="breakdown-item total">
+            <div class="breakdown-item total" style="margin-top: 10px;">
                 <span>Net Profit</span>
-                <span>₨ ${summary.trueNetProfit.toFixed(2)}</span>
+                <span style="color: #10b981; font-weight: 700;">₨ ${summary.trueNetProfit.toFixed(2)}</span>
             </div>
         `;
 

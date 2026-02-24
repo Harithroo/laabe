@@ -382,14 +382,15 @@ tbody tr:last-child td {
 }
 
 .breakdown-table {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .breakdown-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid var(--border);
     font-size: 0.95rem;
