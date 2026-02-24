@@ -24,8 +24,8 @@ const Calculations = {
 
     /**
      * Core calculation function - calculates daily and monthly metrics
-     * @param {Array} earnings - Array of earning entries
-     * @param {Object} config - Config with baseCommuteDistance, driverPassCost, fuelCostPerKm, maintenanceCostPerKm
+     * @param {Array} earnings - Array of earning entries sorted by date
+     * @param {Object} config - Config with driverPassCostPerDay, driverPassActivationDate, fuelConsumptionRate, fuelPricePerLiter, maintenanceCostPerKm
      * @returns {Object} Detailed metrics including daily breakdown and totals
      */
     calculateMetrics(earnings, config) {
@@ -33,7 +33,6 @@ const Calculations = {
             return {
                 totalRideIncome: 0,
                 totalRideDistance: 0,
-                totalExtraDistance: 0,
                 totalFuelCost: 0,
                 totalMaintenanceCost: 0,
                 allocatedDriverPassCost: 0,
@@ -45,56 +44,58 @@ const Calculations = {
             };
         }
 
-        const baseCommuteDistance = config.baseCommuteDistance || 16;
-        const driverPassCost = config.driverPassCost || 999;
-        const fuelCostPerKm = config.fuelCostPerKm || 0;
-        const maintenanceCostPerKm = config.maintenanceCostPerKm || 0;
+        const driverPassCostPerDay = config.driverPassCostPerDay || 999;
+        const driverPassActivationDate = config.driverPassActivationDate || new Date().toISOString().split('T')[0];
+        const fuelConsumptionRate = config.fuelConsumptionRate || 13;  // km/l
+        const fuelPricePerLiter = config.fuelPricePerLiter || 250;     // LKR/l
+        const maintenanceCostPerKm = config.maintenanceCostPerKm || 10; // LKR/km
 
         let dailyBreakdown = [];
         let totalRideIncome = 0;
         let totalRideDistance = 0;
-        let totalExtraDistance = 0;
         let totalFuelCost = 0;
         let totalMaintenanceCost = 0;
-        let totalDailyProfit = 0;
+        let allocatedDriverPassCost = 0;
+        let activeDrivingDays = 0;
+
+        // Sort earnings by date to process chronologically
+        const sortedEarnings = [...earnings].sort((a, b) => new Date(a.date) - new Date(b.date));
 
         // Calculate daily metrics
-        earnings.forEach(earning => {
+        sortedEarnings.forEach((earning) => {
             const totalRideDistance_earn = parseFloat(earning.totalRideDistance) || 0;
             const totalIncome = parseFloat(earning.totalIncome) || 0;
             const numberOfTrips = parseInt(earning.numberOfTrips) || 0;
 
-            const extraDistance = Math.max(0, totalRideDistance_earn - baseCommuteDistance);
-            const dailyFuelCost = extraDistance * fuelCostPerKm;
+            // Fuel cost based on consumption
+            const fuelUsed = totalRideDistance_earn / fuelConsumptionRate;
+            const dailyFuelCost = fuelUsed * fuelPricePerLiter;
+
+            // Driver pass cost - only if date >= activation date
+            let driverPassCost = 0;
+            if (earning.date >= driverPassActivationDate) {
+                driverPassCost = driverPassCostPerDay;
+                allocatedDriverPassCost += driverPassCostPerDay;
+            }
+
             const dailyMaintenanceCost = totalRideDistance_earn * maintenanceCostPerKm;
 
             totalRideIncome += totalIncome;
             totalRideDistance += totalRideDistance_earn;
-            totalExtraDistance += extraDistance;
             totalFuelCost += dailyFuelCost;
             totalMaintenanceCost += dailyMaintenanceCost;
+            activeDrivingDays++;
 
             dailyBreakdown.push({
                 date: earning.date,
                 rideDistance: totalRideDistance_earn,
-                extraDistance: extraDistance,
                 income: totalIncome,
                 numberOfTrips: numberOfTrips,
                 fuelCost: dailyFuelCost,
                 maintenanceCost: dailyMaintenanceCost,
-                driverPassAllocation: 0  // Will be calculated below
+                driverPassCost: driverPassCost,
+                dailyNetProfit: totalIncome - dailyFuelCost - dailyMaintenanceCost - driverPassCost
             });
-        });
-
-        const activeDrivingDays = earnings.length;
-        const dailyDriverPassCost = driverPassCost / activeDrivingDays;
-        const allocatedDriverPassCost = dailyDriverPassCost * activeDrivingDays;
-
-        // Add daily driver pass allocation to breakdown
-        dailyBreakdown.forEach(day => {
-            day.driverPassAllocation = dailyDriverPassCost;
-            day.dailyNetProfit = day.income - day.fuelCost - day.maintenanceCost - dailyDriverPassCost;
-            totalDailyProfit += day.dailyNetProfit;
         });
 
         const trueNetProfit = totalRideIncome - totalFuelCost - allocatedDriverPassCost - totalMaintenanceCost;
@@ -104,7 +105,6 @@ const Calculations = {
         return {
             totalRideIncome,
             totalRideDistance,
-            totalExtraDistance,
             totalFuelCost,
             totalMaintenanceCost,
             allocatedDriverPassCost,

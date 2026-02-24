@@ -281,23 +281,25 @@ const UI = {
         const form = document.getElementById('configForm');
         const config = Storage.getConfig();
 
-        document.getElementById('fuelPrice').value = config.baseCommuteDistance;
-        document.getElementById('kmPerLiter').value = config.driverPassCost;
-        document.getElementById('serviceInterval').value = config.fuelCostPerKm;
+        document.getElementById('driverPassCostPerDay').value = config.driverPassCostPerDay || 999;
+        document.getElementById('driverPassActivationDate').value = config.driverPassActivationDate || new Date().toISOString().split('T')[0];
+        document.getElementById('fuelConsumptionRate').value = config.fuelConsumptionRate || 13;
+        document.getElementById('fuelPricePerLiter').value = config.fuelPricePerLiter || 250;
         
         const maintenanceCostField = document.getElementById('maintenanceCost');
         if (maintenanceCostField) {
-            maintenanceCostField.value = config.maintenanceCostPerKm;
+            maintenanceCostField.value = config.maintenanceCostPerKm || 10;
         }
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
             const newConfig = {
-                baseCommuteDistance: parseFloat(document.getElementById('fuelPrice').value),
-                driverPassCost: parseFloat(document.getElementById('kmPerLiter').value),
-                fuelCostPerKm: parseFloat(document.getElementById('serviceInterval').value),
-                maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 0
+                driverPassCostPerDay: parseFloat(document.getElementById('driverPassCostPerDay').value),
+                driverPassActivationDate: document.getElementById('driverPassActivationDate').value,
+                fuelConsumptionRate: parseFloat(document.getElementById('fuelConsumptionRate').value),
+                fuelPricePerLiter: parseFloat(document.getElementById('fuelPricePerLiter').value),
+                maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 10
             };
 
             Storage.setConfig(newConfig);
@@ -353,7 +355,7 @@ const UI = {
 
         // Update metrics for new model
         document.getElementById('totalKm').textContent = `${summary.totalRideDistance.toFixed(1)} km`;
-        document.getElementById('costPerKm').textContent = `₨ ${(summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance).toFixed(2) : 0}`;
+        document.getElementById('costPerKm').textContent = `₨ ${summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance).toFixed(2) : 0}`;
         document.getElementById('profitPerKm').textContent = `₨ ${summary.profitPerKm.toFixed(2)}`;
         document.getElementById('hourlyProfit').textContent = `₨ ${summary.profitPerDay.toFixed(2)} / day`;
 
@@ -366,29 +368,31 @@ const UI = {
         const container = document.getElementById('expenseBreakdown');
         container.innerHTML = '';
 
+        const totalCosts = summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost;
         const items = `
-            <div class="breakdown-item">
-                <span>Total Ride Income</span>
-                <span>₨ ${summary.totalRideIncome.toFixed(2)}</span>
+            <div class="breakdown-item income-row">
+                <span><strong>Total Ride Income</strong></span>
+                <span><strong>₨ ${summary.totalRideIncome.toFixed(2)}</strong></span>
             </div>
+            <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
             <div class="breakdown-item">
-                <span>Total Extra Distance</span>
-                <span>${summary.totalExtraDistance.toFixed(1)} km</span>
-            </div>
-            <div class="breakdown-item">
-                <span>Fuel Cost (extra)</span>
+                <span>Fuel Cost (@ ₨${(summary.totalFuelCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
                 <span>₨ ${summary.totalFuelCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item">
-                <span>Driver Pass Cost</span>
-                <span>₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
-            </div>
-            <div class="breakdown-item">
-                <span>Maintenance Cost</span>
+                <span>Maintenance Cost (@ ₨${(summary.totalMaintenanceCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
                 <span>₨ ${summary.totalMaintenanceCost.toFixed(2)}</span>
             </div>
+            <div class="breakdown-item">
+                <span>Driver Pass</span>
+                <span>₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item" style="padding-top: 10px; border-top: 1px solid #ddd;">
+                <span>Total Costs</span>
+                <span>₨ ${totalCosts.toFixed(2)}</span>
+            </div>
             <div class="breakdown-item total">
-                <span>True Net Profit</span>
+                <span>Net Profit</span>
                 <span>₨ ${summary.trueNetProfit.toFixed(2)}</span>
             </div>
         `;

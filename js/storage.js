@@ -10,11 +10,13 @@ const Storage = {
         this.migrateOldData();
 
         if (!this.get('config')) {
+            const today = new Date().toISOString().split('T')[0];
             this.set('config', {
-                baseCommuteDistance: 16,      // km per day
-                driverPassCost: 999,           // LKR per month
-                fuelCostPerKm: 0,              // LKR per km
-                maintenanceCostPerKm: 0        // LKR per km
+                driverPassCostPerDay: 999,      // LKR per day
+                driverPassActivationDate: today,// Date pass starts charging
+                fuelConsumptionRate: 13,        // km per liter
+                fuelPricePerLiter: 250,         // LKR per liter
+                maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
             });
         }
         if (!this.get('earnings')) {
@@ -108,11 +110,13 @@ const Storage = {
 
     // Config
     getConfig() {
+        const today = new Date().toISOString().split('T')[0];
         return this.get('config') || {
-            baseCommuteDistance: 16,
-            driverPassCost: 999,
-            fuelCostPerKm: 0,
-            maintenanceCostPerKm: 0
+            driverPassCostPerDay: 999,
+            driverPassActivationDate: today,
+            fuelConsumptionRate: 13,
+            fuelPricePerLiter: 250,
+            maintenanceCostPerKm: 10
         };
     },
 
