@@ -1,6 +1,6 @@
 /**
  * Storage Module
- * Handles localStorage operations for earnings, expenses, mileage, and config
+ * Handles localStorage operations for earnings, expenses, and config
  */
 
 const Storage = {
@@ -8,9 +8,10 @@ const Storage = {
     initDefaults() {
         if (!this.get('config')) {
             this.set('config', {
-                fuelPrice: 0,
-                kmPerLiter: 0,
-                serviceInterval: 10000
+                baseCommuteDistance: 16,      // km per day
+                driverPassCost: 999,           // LKR per month
+                fuelCostPerKm: 0,              // LKR per km
+                maintenanceCostPerKm: 0        // LKR per km
             });
         }
         if (!this.get('earnings')) {
@@ -18,9 +19,6 @@ const Storage = {
         }
         if (!this.get('expenses')) {
             this.set('expenses', []);
-        }
-        if (!this.get('mileage')) {
-            this.set('mileage', []);
         }
     },
 
@@ -85,37 +83,15 @@ const Storage = {
         this.set('expenses', expenses);
     },
 
-    // Mileage
-    addMileage(mileage) {
-        const mileages = this.get('mileage') || [];
-        mileage.id = Date.now().toString();
-        mileages.push(mileage);
-        this.set('mileage', mileages);
-        return mileage;
-    },
-
-    getMileage() {
-        return this.get('mileage') || [];
-    },
-
-    deleteMileage(id) {
-        let mileages = this.get('mileage') || [];
-        mileages = mileages.filter(m => m.id !== id);
-        this.set('mileage', mileages);
-    },
-
-    updateMileage(id, mileage) {
-        let mileages = this.get('mileage') || [];
-        mileages = mileages.map(m => m.id === id ? { ...mileage, id } : m);
-        this.set('mileage', mileages);
-    },
+    // Mileage (removed - using totalRideDistance in earnings instead)
 
     // Config
     getConfig() {
         return this.get('config') || {
-            fuelPrice: 0,
-            kmPerLiter: 0,
-            serviceInterval: 10000
+            baseCommuteDistance: 16,
+            driverPassCost: 999,
+            fuelCostPerKm: 0,
+            maintenanceCostPerKm: 0
         };
     },
 

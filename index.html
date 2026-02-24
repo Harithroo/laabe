@@ -24,31 +24,23 @@
 
         <!-- Earnings Tab -->
         <div id="earnings" class="tab-content active">
-            <h2>Add Trip Earnings</h2>
+            <h2>Add Daily Earnings</h2>
             <form id="earningsForm">
                 <div class="form-group">
                     <label>Date</label>
                     <input type="date" id="earningsDate" required>
                 </div>
                 <div class="form-group">
-                    <label>Gross Fare (₨)</label>
-                    <input type="number" id="grossFare" step="0.01" required>
+                    <label>Total Ride Distance (km)</label>
+                    <input type="number" id="grossFare" step="0.1" required>
                 </div>
                 <div class="form-group">
-                    <label>Uber Commission (₨)</label>
+                    <label>Total Income (₨)</label>
                     <input type="number" id="commission" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label>Tips (₨)</label>
-                    <input type="number" id="tips" step="0.01" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Trip Count</label>
+                    <label>Number of Trips</label>
                     <input type="number" id="tripCount" value="1" required>
-                </div>
-                <div class="form-group">
-                    <label>Online Hours</label>
-                    <input type="number" id="onlineHours" step="0.5" value="1" required>
                 </div>
                 <button type="submit" class="btn-primary">Add Earnings</button>
             </form>
@@ -59,12 +51,12 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Gross</th>
-                            <th>Commission</th>
-                            <th>Tips</th>
-                            <th>Net</th>
+                            <th>Distance (km)</th>
+                            <th>Income (₨)</th>
                             <th>Trips</th>
-                            <th>Hours</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -180,19 +172,23 @@
 
         <!-- Settings Tab -->
         <div id="config" class="tab-content">
-            <h2>Vehicle Configuration</h2>
+            <h2>Commute & Cost Settings</h2>
             <form id="configForm">
                 <div class="form-group">
-                    <label>Fuel Price per Liter (₨)</label>
-                    <input type="number" id="fuelPrice" step="0.01" value="0" required>
+                    <label>Base Commute Distance per Day (km)</label>
+                    <input type="number" id="fuelPrice" step="0.1" value="16" required>
                 </div>
                 <div class="form-group">
-                    <label>Average Fuel Efficiency (km/liter)</label>
-                    <input type="number" id="kmPerLiter" step="0.1" value="0" required>
+                    <label>Driver Pass Cost per Month (₨)</label>
+                    <input type="number" id="kmPerLiter" step="0.01" value="999" required>
                 </div>
                 <div class="form-group">
-                    <label>Service Interval (km)</label>
-                    <input type="number" id="serviceInterval" step="1" value="10000" required>
+                    <label>Fuel Cost per KM (₨)</label>
+                    <input type="number" id="serviceInterval" step="0.01" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Maintenance Cost per KM (₨)</label>
+                    <input type="number" id="maintenanceCost" step="0.01" value="0" required>
                 </div>
                 <button type="submit" class="btn-primary">Save Settings</button>
             </form>
@@ -209,15 +205,15 @@
 
             <div class="summary-grid">
                 <div class="summary-card">
-                    <h3>Total Revenue</h3>
+                    <h3>Total Ride Income</h3>
                     <p class="summary-value" id="totalRevenue">₨ 0.00</p>
                 </div>
                 <div class="summary-card">
-                    <h3>Total Expenses</h3>
+                    <h3>Total Costs</h3>
                     <p class="summary-value expense" id="totalExpenses">₨ 0.00</p>
                 </div>
                 <div class="summary-card">
-                    <h3>Net Profit</h3>
+                    <h3>True Net Profit</h3>
                     <p class="summary-value" id="netProfit">₨ 0.00</p>
                 </div>
                 <div class="summary-card">
@@ -227,7 +223,7 @@
             </div>
 
             <div class="summary-section">
-                <h3>Expense Breakdown</h3>
+                <h3>Cost Breakdown</h3>
                 <div id="expenseBreakdown" class="breakdown-table"></div>
             </div>
 
@@ -247,8 +243,8 @@
                         <p id="profitPerKm">₨ 0.00</p>
                     </div>
                     <div class="metric-card">
-                        <label>Hourly Profit</label>
-                        <p id="hourlyProfit">₨ 0.00</p>
+                        <label>Profit per Day</label>
+                        <p id="hourlyProfit">₨ 0.00 / day</p>
                     </div>
                 </div>
             </div>
@@ -275,24 +271,16 @@
                     <input type="date" id="editEarningsDate" required>
                 </div>
                 <div class="form-group">
-                    <label>Gross Fare (₨)</label>
-                    <input type="number" id="editGrossFare" step="0.01" required>
+                    <label>Total Ride Distance (km)</label>
+                    <input type="number" id="editGrossFare" step="0.1" required>
                 </div>
                 <div class="form-group">
-                    <label>Uber Commission (₨)</label>
+                    <label>Total Income (₨)</label>
                     <input type="number" id="editCommission" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label>Tips (₨)</label>
-                    <input type="number" id="editTips" step="0.01" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Trip Count</label>
+                    <label>Number of Trips</label>
                     <input type="number" id="editTripCount" value="1" required>
-                </div>
-                <div class="form-group">
-                    <label>Online Hours</label>
-                    <input type="number" id="editOnlineHours" step="0.5" value="1" required>
                 </div>
                 <button type="submit" class="btn-primary">Save Changes</button>
             </form>

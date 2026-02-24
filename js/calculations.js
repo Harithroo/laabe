@@ -1,6 +1,6 @@
 /**
  * Calculations Module
- * Handles all profit/loss calculations
+ * Handles all profit/loss calculations for Uber driving
  */
 
 const Calculations = {
@@ -22,117 +22,119 @@ const Calculations = {
         });
     },
 
-    // Get mileage for a specific month
-    getMileageByMonth(year, month) {
-        const mileage = Storage.getMileage();
-        return mileage.filter(m => {
-            const date = new Date(m.date);
-            return date.getFullYear() === year && date.getMonth() === month;
+    /**
+     * Core calculation function - calculates daily and monthly metrics
+     * @param {Array} earnings - Array of earning entries
+     * @param {Object} config - Config with baseCommuteDistance, driverPassCost, fuelCostPerKm, maintenanceCostPerKm
+     * @returns {Object} Detailed metrics including daily breakdown and totals
+     */
+    calculateMetrics(earnings, config) {
+        if (!earnings || earnings.length === 0) {
+            return {
+                totalRideIncome: 0,
+                totalRideDistance: 0,
+                totalExtraDistance: 0,
+                totalFuelCost: 0,
+                totalMaintenanceCost: 0,
+                allocatedDriverPassCost: 0,
+                trueNetProfit: 0,
+                profitPerKm: 0,
+                profitPerDay: 0,
+                activeDrivingDays: 0,
+                dailyBreakdown: []
+            };
+        }
+
+        const baseCommuteDistance = config.baseCommuteDistance || 16;
+        const driverPassCost = config.driverPassCost || 999;
+        const fuelCostPerKm = config.fuelCostPerKm || 0;
+        const maintenanceCostPerKm = config.maintenanceCostPerKm || 0;
+
+        let dailyBreakdown = [];
+        let totalRideIncome = 0;
+        let totalRideDistance = 0;
+        let totalExtraDistance = 0;
+        let totalFuelCost = 0;
+        let totalMaintenanceCost = 0;
+        let totalDailyProfit = 0;
+
+        // Calculate daily metrics
+        earnings.forEach(earning => {
+            const totalRideDistance_earn = parseFloat(earning.totalRideDistance) || 0;
+            const totalIncome = parseFloat(earning.totalIncome) || 0;
+            const numberOfTrips = parseInt(earning.numberOfTrips) || 0;
+
+            const extraDistance = Math.max(0, totalRideDistance_earn - baseCommuteDistance);
+            const dailyFuelCost = extraDistance * fuelCostPerKm;
+            const dailyMaintenanceCost = totalRideDistance_earn * maintenanceCostPerKm;
+
+            totalRideIncome += totalIncome;
+            totalRideDistance += totalRideDistance_earn;
+            totalExtraDistance += extraDistance;
+            totalFuelCost += dailyFuelCost;
+            totalMaintenanceCost += dailyMaintenanceCost;
+
+            dailyBreakdown.push({
+                date: earning.date,
+                rideDistance: totalRideDistance_earn,
+                extraDistance: extraDistance,
+                income: totalIncome,
+                numberOfTrips: numberOfTrips,
+                fuelCost: dailyFuelCost,
+                maintenanceCost: dailyMaintenanceCost,
+                driverPassAllocation: 0  // Will be calculated below
+            });
         });
-    },
 
-    // Calculate total revenue for earnings list
-    calculateTotalRevenue(earnings) {
-        return earnings.reduce((sum, e) => {
-            const net = e.grossFare - e.commission + (e.tips || 0);
-            return sum + net;
-        }, 0);
-    },
+        const activeDrivingDays = earnings.length;
+        const dailyDriverPassCost = driverPassCost / activeDrivingDays;
+        const allocatedDriverPassCost = dailyDriverPassCost * activeDrivingDays;
 
-    // Calculate total expenses by type
-    calculateTotalExpenses(expenses) {
-        return expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-    },
+        // Add daily driver pass allocation to breakdown
+        dailyBreakdown.forEach(day => {
+            day.driverPassAllocation = dailyDriverPassCost;
+            day.dailyNetProfit = day.income - day.fuelCost - day.maintenanceCost - dailyDriverPassCost;
+            totalDailyProfit += day.dailyNetProfit;
+        });
 
-    // Group expenses by category
-    groupExpensesByCategory(expenses) {
-        return expenses.reduce((groups, expense) => {
-            const category = expense.category;
-            if (!groups[category]) {
-                groups[category] = 0;
-            }
-            groups[category] += parseFloat(expense.amount);
-            return groups;
-        }, {});
-    },
-
-    // Group expenses by type
-    groupExpensesByType(expenses) {
-        return expenses.reduce((groups, expense) => {
-            const type = expense.type;
-            if (!groups[type]) {
-                groups[type] = 0;
-            }
-            groups[type] += parseFloat(expense.amount);
-            return groups;
-        }, {});
-    },
-
-    // Calculate total kilometers for a month
-    calculateTotalKilometers(mileage) {
-        return mileage.reduce((sum, m) => {
-            const distance = parseFloat(m.odometerEnd) - parseFloat(m.odometerStart);
-            return sum + distance;
-        }, 0);
-    },
-
-    // Calculate cost per km
-    calculateCostPerKm(totalExpenses, totalKm) {
-        if (totalKm === 0) return 0;
-        return totalExpenses / totalKm;
-    },
-
-    // Calculate profit per km
-    calculateProfitPerKm(netProfit, totalKm) {
-        if (totalKm === 0) return 0;
-        return netProfit / totalKm;
-    },
-
-    // Calculate hourly profit
-    calculateHourlyProfit(netProfit, totalHours) {
-        if (totalHours === 0) return 0;
-        return netProfit / totalHours;
-    },
-
-    // Calculate total hours
-    calculateTotalHours(earnings) {
-        return earnings.reduce((sum, e) => sum + parseFloat(e.onlineHours || 0), 0);
-    },
-
-    // Calculate profit margin %
-    calculateProfitMargin(netProfit, totalRevenue) {
-        if (totalRevenue === 0) return 0;
-        return (netProfit / totalRevenue) * 100;
-    },
-
-    // Get complete monthly summary
-    getMonthlySummary(year, month) {
-        const earnings = this.getEarningsByMonth(year, month);
-        const expenses = this.getExpensesByMonth(year, month);
-        const mileage = this.getMileageByMonth(year, month);
-
-        const totalRevenue = this.calculateTotalRevenue(earnings);
-        const totalExpenses = this.calculateTotalExpenses(expenses);
-        const netProfit = totalRevenue - totalExpenses;
-        const totalKm = this.calculateTotalKilometers(mileage);
-        const totalHours = this.calculateTotalHours(earnings);
-        const costPerKm = this.calculateCostPerKm(totalExpenses, totalKm);
-        const profitPerKm = this.calculateProfitPerKm(netProfit, totalKm);
-        const hourlyProfit = this.calculateHourlyProfit(netProfit, totalHours);
-        const profitMargin = this.calculateProfitMargin(netProfit, totalRevenue);
+        const trueNetProfit = totalRideIncome - totalFuelCost - allocatedDriverPassCost - totalMaintenanceCost;
+        const profitPerKm = totalRideDistance > 0 ? trueNetProfit / totalRideDistance : 0;
+        const profitPerDay = activeDrivingDays > 0 ? trueNetProfit / activeDrivingDays : 0;
 
         return {
-            totalRevenue,
-            totalExpenses,
-            netProfit,
-            totalKm,
-            totalHours,
-            costPerKm,
+            totalRideIncome,
+            totalRideDistance,
+            totalExtraDistance,
+            totalFuelCost,
+            totalMaintenanceCost,
+            allocatedDriverPassCost,
+            trueNetProfit,
             profitPerKm,
-            hourlyProfit,
-            profitMargin,
-            expensesByCategory: this.groupExpensesByCategory(expenses),
-            expensesByType: this.groupExpensesByType(expenses)
+            profitPerDay,
+            activeDrivingDays,
+            dailyBreakdown
         };
+    },
+
+    /**
+     * Get complete monthly summary
+     * @param {number} year - Year
+     * @param {number} month - Month (0-11)
+     * @returns {Object} Monthly summary metrics
+     */
+    getMonthlySummary(year, month) {
+        const earnings = this.getEarningsByMonth(year, month);
+        const config = Storage.getConfig();
+        return this.calculateMetrics(earnings, config);
+    },
+
+    /**
+     * Get complete summary of all data
+     * @returns {Object} Overall summary metrics
+     */
+    getAllSummary() {
+        const earnings = Storage.getEarnings();
+        const config = Storage.getConfig();
+        return this.calculateMetrics(earnings, config);
     }
 };
