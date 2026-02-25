@@ -25,6 +25,9 @@ const Storage = {
         if (!this.get('expenses')) {
             this.set('expenses', []);
         }
+        if (!this.get('mileage')) {
+            this.set('mileage', []);
+        }
     },
 
     // Migrate old data format to new format
@@ -106,7 +109,30 @@ const Storage = {
         this.set('expenses', expenses);
     },
 
-    // Mileage (removed - using totalRideDistance in earnings instead)
+    // Mileage
+    addMileage(mileage) {
+        const mileageEntries = this.get('mileage') || [];
+        mileage.id = Date.now().toString();
+        mileageEntries.push(mileage);
+        this.set('mileage', mileageEntries);
+        return mileage;
+    },
+
+    getMileage() {
+        return this.get('mileage') || [];
+    },
+
+    deleteMileage(id) {
+        let mileageEntries = this.get('mileage') || [];
+        mileageEntries = mileageEntries.filter(m => m.id !== id);
+        this.set('mileage', mileageEntries);
+    },
+
+    updateMileage(id, mileage) {
+        let mileageEntries = this.get('mileage') || [];
+        mileageEntries = mileageEntries.map(m => m.id === id ? { ...mileage, id } : m);
+        this.set('mileage', mileageEntries);
+    },
 
     // Config
     getConfig() {

@@ -28,15 +28,19 @@ const Calculations = {
      * @param {Object} config - Config with driverPassCostPerDay, driverPassActivationDate, fuelConsumptionRate, fuelPricePerLiter, maintenanceCostPerKm
      * @returns {Object} Detailed metrics including daily breakdown and totals
      */
-    calculateMetrics(earnings, config) {
+    calculateMetrics(earnings, config, expenses = []) {
         if (!earnings || earnings.length === 0) {
+            const totalManualExpenses = (expenses || []).reduce((sum, expense) => {
+                return sum + (parseFloat(expense.amount) || 0);
+            }, 0);
             return {
                 totalRideIncome: 0,
                 totalRideDistance: 0,
                 totalFuelCost: 0,
                 totalMaintenanceCost: 0,
                 allocatedDriverPassCost: 0,
-                trueNetProfit: 0,
+                totalManualExpenses,
+                trueNetProfit: -totalManualExpenses,
                 profitPerKm: 0,
                 profitPerDay: 0,
                 activeDrivingDays: 0,
@@ -98,7 +102,11 @@ const Calculations = {
             });
         });
 
-        const trueNetProfit = totalRideIncome - totalFuelCost - allocatedDriverPassCost - totalMaintenanceCost;
+        const totalManualExpenses = (expenses || []).reduce((sum, expense) => {
+            return sum + (parseFloat(expense.amount) || 0);
+        }, 0);
+
+        const trueNetProfit = totalRideIncome - totalFuelCost - allocatedDriverPassCost - totalMaintenanceCost - totalManualExpenses;
         const profitPerKm = totalRideDistance > 0 ? trueNetProfit / totalRideDistance : 0;
         const profitPerDay = activeDrivingDays > 0 ? trueNetProfit / activeDrivingDays : 0;
 
@@ -108,6 +116,7 @@ const Calculations = {
             totalFuelCost,
             totalMaintenanceCost,
             allocatedDriverPassCost,
+            totalManualExpenses,
             trueNetProfit,
             profitPerKm,
             profitPerDay,
@@ -124,8 +133,9 @@ const Calculations = {
      */
     getMonthlySummary(year, month) {
         const earnings = this.getEarningsByMonth(year, month);
+        const expenses = this.getExpensesByMonth(year, month);
         const config = Storage.getConfig();
-        return this.calculateMetrics(earnings, config);
+        return this.calculateMetrics(earnings, config, expenses);
     },
 
     /**
@@ -134,7 +144,8 @@ const Calculations = {
      */
     getAllSummary() {
         const earnings = Storage.getEarnings();
+        const expenses = Storage.getExpenses();
         const config = Storage.getConfig();
-        return this.calculateMetrics(earnings, config);
+        return this.calculateMetrics(earnings, config, expenses);
     }
 };

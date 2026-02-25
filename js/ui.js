@@ -4,6 +4,20 @@
  */
 
 const UI = {
+    escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
+    normalizeExpenseType(type) {
+        const allowedTypes = ['variable', 'fixed', 'maintenance'];
+        return allowedTypes.includes(type) ? type : 'variable';
+    },
+
     // Initialize all event listeners
     init() {
         this.setupTabNavigation();
@@ -119,7 +133,7 @@ const UI = {
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${date}</td>
+                    <td>${this.escapeHtml(date)}</td>
                     <td>${distance.toFixed(1)} km</td>
                     <td>₨ ${income.toFixed(2)}</td>
                     <td>${trips}</td>
@@ -187,13 +201,14 @@ const UI = {
 
         expenses.forEach(expense => {
             try {
+                const type = this.normalizeExpenseType(expense.type);
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${expense.date || 'N/A'}</td>
-                    <td>${this.getCategoryLabel(expense.category)}</td>
+                    <td>${this.escapeHtml(expense.date || 'N/A')}</td>
+                    <td>${this.escapeHtml(this.getCategoryLabel(expense.category))}</td>
                     <td>₨ ${parseFloat(expense.amount || 0).toFixed(2)}</td>
-                    <td><span class="badge badge-${expense.type}">${expense.type}</span></td>
-                    <td>${expense.notes || ''}</td>
+                    <td>${this.escapeHtml(type)}</td>
+                    <td>${this.escapeHtml(expense.notes || '')}</td>
                     <td>
                         <button class="btn-edit" onclick="UI.openEditExpenseModal('${expense.id}')">Edit</button>
                         <button class="btn-delete" onclick="UI.deleteExpense('${expense.id}')">Delete</button>
@@ -266,14 +281,43 @@ const UI = {
 
     // Render Mileage Table
     renderMileageTable() {
-        // Mileage is now tracked via ride distance in earnings
-        // This function is kept for backward compatibility
-        return;
+        const mileageEntries = Storage.getMileage();
+        const tbody = document.querySelector('#mileageTable tbody');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!mileageEntries || mileageEntries.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No mileage recorded yet</td></tr>';
+            return;
+        }
+
+        mileageEntries.forEach((mileage) => {
+            const start = parseFloat(mileage.odometerStart) || 0;
+            const end = parseFloat(mileage.odometerEnd) || 0;
+            const distance = Math.max(end - start, 0);
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${this.escapeHtml(mileage.date || 'N/A')}</td>
+                <td>${start.toFixed(1)}</td>
+                <td>${end.toFixed(1)}</td>
+                <td>${distance.toFixed(1)}</td>
+                <td>
+                    <button class="btn-edit" onclick="UI.openEditMileageModal('${mileage.id}')">Edit</button>
+                    <button class="btn-delete" onclick="UI.deleteMileage('${mileage.id}')">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
     },
 
     deleteMileage(id) {
-        // Mileage deletion is deprecated
-        return;
+        if (confirm('Are you sure you want to delete this mileage record?')) {
+            Storage.deleteMileage(id);
+            this.renderMileageTable();
+        }
     },
 
     // Config Form
@@ -349,13 +393,13 @@ const UI = {
 
         // Update summary cards with new metrics
         document.getElementById('totalRevenue').textContent = `₨ ${summary.totalRideIncome.toFixed(2)}`;
-        document.getElementById('totalExpenses').textContent = `₨ ${(summary.totalFuelCost + summary.allocatedDriverPassCost + summary.totalMaintenanceCost).toFixed(2)}`;
+        document.getElementById('totalExpenses').textContent = `₨ ${(summary.totalFuelCost + summary.allocatedDriverPassCost + summary.totalMaintenanceCost + summary.totalManualExpenses).toFixed(2)}`;
         document.getElementById('netProfit').textContent = `₨ ${summary.trueNetProfit.toFixed(2)}`;
         document.getElementById('profitMargin').textContent = `${summary.totalRideIncome > 0 ? ((summary.trueNetProfit / summary.totalRideIncome) * 100).toFixed(2) : 0}%`;
 
         // Update metrics for new model
         document.getElementById('totalKm').textContent = `${summary.totalRideDistance.toFixed(1)} km`;
-        document.getElementById('costPerKm').textContent = `₨ ${summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost) / summary.totalRideDistance).toFixed(2) : 0}`;
+        document.getElementById('costPerKm').textContent = `₨ ${summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost + summary.totalManualExpenses) / summary.totalRideDistance).toFixed(2) : 0}`;
         document.getElementById('profitPerKm').textContent = `₨ ${summary.profitPerKm.toFixed(2)}`;
         document.getElementById('hourlyProfit').textContent = `₨ ${summary.profitPerDay.toFixed(2)} / day`;
 
@@ -368,7 +412,7 @@ const UI = {
         const container = document.getElementById('expenseBreakdown');
         container.innerHTML = '';
 
-        const totalCosts = summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost;
+        const totalCosts = summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost + summary.totalManualExpenses;
         const items = `
             <div class="breakdown-item income-row" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6;">
                 <span><strong>Income</strong></span>
@@ -385,6 +429,10 @@ const UI = {
             <div class="breakdown-item" style="margin-bottom: 10px;">
                 <span>Driver Pass</span>
                 <span>-₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Recorded Expenses</span>
+                <span>-LKR ${summary.totalManualExpenses.toFixed(2)}</span>
             </div>
             <div class="breakdown-item" style="padding: 12px 0; border-top: 2px solid #e2e8f0; border-bottom: 2px solid #e2e8f0; font-weight: 600; margin-bottom: 10px;">
                 <span>Total Costs</span>
@@ -494,12 +542,26 @@ const UI = {
             alert('Expense updated successfully!');
         });
 
-        // Edit Mileage Form (stub - mileage removed from new model)
+        // Edit Mileage Form
         if (document.getElementById('editMileageForm')) {
             document.getElementById('editMileageForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                alert('Mileage tracking is no longer used. Use ride distance in earnings instead.');
+                const id = document.getElementById('editMileageId').value;
+                const mileage = {
+                    date: document.getElementById('editMileageDate').value,
+                    odometerStart: parseFloat(document.getElementById('editOdometerStart').value),
+                    odometerEnd: parseFloat(document.getElementById('editOdometerEnd').value)
+                };
+
+                if (mileage.odometerEnd <= mileage.odometerStart) {
+                    alert('Odometer end must be greater than start!');
+                    return;
+                }
+
+                Storage.updateMileage(id, mileage);
+                this.renderMileageTable();
                 this.closeModal('editMileageModal');
+                alert('Mileage updated successfully!');
             });
         }
     },
@@ -536,14 +598,23 @@ const UI = {
     },
 
     openEditMileageModal(id) {
-        // Mileage editing is deprecated - track distance via earnings instead
-        alert('Mileage tracking is no longer used. Use ride distance in the Earnings tab instead.');
+        const mileageEntries = Storage.getMileage();
+        const mileage = mileageEntries.find(m => m.id === id);
+
+        if (mileage) {
+            document.getElementById('editMileageId').value = id;
+            document.getElementById('editMileageDate').value = mileage.date;
+            document.getElementById('editOdometerStart').value = mileage.odometerStart;
+            document.getElementById('editOdometerEnd').value = mileage.odometerEnd;
+            this.openModal('editMileageModal');
+        }
     },
 
     // Render all data on page load
     renderAllData() {
         this.renderEarningsTable();
         this.renderExpenseTable();
+        this.renderMileageTable();
         this.updateSummary();
     }
 };
