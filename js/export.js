@@ -139,7 +139,7 @@ const Exporter = {
                 const { headers, data } = this.parseCSV(content);
 
                 if (!headers.includes('Date') || !headers.includes('Ride Distance (km)') || !headers.includes('Total Income')) {
-                    alert('❌ Invalid earnings file format. Expected columns: Date, Ride Distance (km), Total Income, Number of Trips');
+                    alert('Invalid earnings file format. Expected columns: Date, Ride Distance (km), Total Income, Number of Trips');
                     return;
                 }
 
@@ -165,17 +165,17 @@ const Exporter = {
                 if (imported > 0) {
                     UI.renderEarningsTable();
                     UI.updateSummary();
-                    alert(`✓ Successfully imported ${imported} earning(s)!`);
+                    alert(`Successfully imported ${imported} earning(s)!`);
                 } else {
-                    alert('⚠️ No valid earnings found in file.');
+                    alert('No valid earnings found in file.');
                 }
             } catch (error) {
                 console.error('Import error:', error);
-                alert('❌ Error importing file: ' + error.message);
+                alert('Error importing file: ' + error.message);
             }
         };
         reader.onerror = () => {
-            alert('❌ Error reading file');
+            alert('Error reading file');
         };
         reader.readAsText(file);
     },
@@ -189,7 +189,7 @@ const Exporter = {
                 const { headers, data } = this.parseCSV(content);
 
                 if (!headers.includes('Date') || !headers.includes('Category') || !headers.includes('Amount')) {
-                    alert('❌ Invalid expenses file format. Expected columns: Date, Category, Amount, Type, Notes, Odometer');
+                    alert('Invalid expenses file format. Expected columns: Date, Category, Amount, Type, Notes, Odometer');
                     return;
                 }
 
@@ -217,18 +217,19 @@ const Exporter = {
                 if (imported > 0) {
                     UI.renderExpenseTable();
                     UI.updateSummary();
-                    alert(`✓ Successfully imported ${imported} expense(s)!`);
+                    alert(`Successfully imported ${imported} expense(s)!`);
                 } else {
-                    alert('⚠️ No valid expenses found in file.');
+                    alert('No valid expenses found in file.');
                 }
             } catch (error) {
                 console.error('Import error:', error);
-                alert('❌ Error importing file: ' + error.message);
+                alert('Error importing file: ' + error.message);
             }
         };
         reader.onerror = () => {
-            alert('❌ Error reading file');
+            alert('Error reading file');
         };
         reader.readAsText(file);
     }
 };
+

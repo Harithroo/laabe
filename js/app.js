@@ -5,5 +5,6 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     UI.init();
-    console.log('🚗 Uber Driver Profit Calculator loaded successfully');
+    console.log('Uber Driver Profit Calculator loaded successfully');
 });
+

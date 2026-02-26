@@ -4,48 +4,75 @@
  */
 
 const Storage = {
+    defaultDriverPassActivationDate: '2026-02-24',
+
+    keys: {
+        config: 'config',
+        earnings: 'earnings',
+        expenses: 'expenses',
+        mileage: 'mileage'
+    },
+
     // Initialize default config
     initDefaults() {
         // Migrate from old data format if needed
         this.migrateOldData();
 
-        if (!this.get('config')) {
-            const today = new Date().toISOString().split('T')[0];
-            this.set('config', {
+        const existingConfig = this.get(this.keys.config);
+        if (!existingConfig) {
+            this.set(this.keys.config, {
                 driverPassCostPerDay: 999,      // LKR per day
-                driverPassActivationDate: today,// Date pass starts charging
+                driverPassActivationDate: this.defaultDriverPassActivationDate, // Date pass starts charging (first day excluded)
                 fuelConsumptionRate: 13,        // km per liter
                 fuelPricePerLiter: 250,         // LKR per liter
                 maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
             });
+        } else if (existingConfig.driverPassActivationDate === '2026-02-23') {
+            this.set(this.keys.config, {
+                ...existingConfig,
+                driverPassActivationDate: this.defaultDriverPassActivationDate
+            });
         }
-        if (!this.get('earnings')) {
-            this.set('earnings', []);
+        if (!this.get(this.keys.earnings)) {
+            this.set(this.keys.earnings, []);
         }
-        if (!this.get('expenses')) {
-            this.set('expenses', []);
+        if (!this.get(this.keys.expenses)) {
+            this.set(this.keys.expenses, []);
         }
-        if (!this.get('mileage')) {
-            this.set('mileage', []);
+        if (!this.get(this.keys.mileage)) {
+            this.set(this.keys.mileage, []);
         }
     },
 
     // Migrate old data format to new format
     migrateOldData() {
         try {
-            const oldEarnings = this.get('earnings');
+            const oldEarnings = this.get(this.keys.earnings);
             if (oldEarnings && oldEarnings.length > 0) {
                 const firstEarning = oldEarnings[0];
                 // Check if it's old format (has grossFare, commission, etc.)
                 if (firstEarning.grossFare !== undefined && firstEarning.totalRideDistance === undefined) {
                     console.log('Migrating old earnings format...');
-                    // Old format detected, clear it - user should re-enter with new format
-                    this.set('earnings', []);
+                    const migrated = oldEarnings.map((entry) => ({
+                        id: entry.id || this.generateId(),
+                        date: entry.date || new Date().toISOString().split('T')[0],
+                        totalRideDistance: parseFloat(entry.grossFare) || 0,
+                        totalIncome: parseFloat(entry.commission) || 0,
+                        numberOfTrips: parseInt(entry.tripCount) || 1
+                    }));
+                    this.set(this.keys.earnings, migrated);
                 }
             }
         } catch (e) {
             console.error('Error during migration:', e);
         }
+    },
+
+    generateId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     },
 
     // Generic set method
@@ -61,85 +88,84 @@ const Storage = {
 
     // Earnings
     addEarning(earning) {
-        const earnings = this.get('earnings') || [];
-        earning.id = Date.now().toString();
+        const earnings = this.get(this.keys.earnings) || [];
+        earning.id = this.generateId();
         earnings.push(earning);
-        this.set('earnings', earnings);
+        this.set(this.keys.earnings, earnings);
         return earning;
     },
 
     getEarnings() {
-        return this.get('earnings') || [];
+        return this.get(this.keys.earnings) || [];
     },
 
     deleteEarning(id) {
-        let earnings = this.get('earnings') || [];
+        let earnings = this.get(this.keys.earnings) || [];
         earnings = earnings.filter(e => e.id !== id);
-        this.set('earnings', earnings);
+        this.set(this.keys.earnings, earnings);
     },
 
     updateEarning(id, earning) {
-        let earnings = this.get('earnings') || [];
+        let earnings = this.get(this.keys.earnings) || [];
         earnings = earnings.map(e => e.id === id ? { ...earning, id } : e);
-        this.set('earnings', earnings);
+        this.set(this.keys.earnings, earnings);
     },
 
     // Expenses
     addExpense(expense) {
-        const expenses = this.get('expenses') || [];
-        expense.id = Date.now().toString();
+        const expenses = this.get(this.keys.expenses) || [];
+        expense.id = this.generateId();
         expenses.push(expense);
-        this.set('expenses', expenses);
+        this.set(this.keys.expenses, expenses);
         return expense;
     },
 
     getExpenses() {
-        return this.get('expenses') || [];
+        return this.get(this.keys.expenses) || [];
     },
 
     deleteExpense(id) {
-        let expenses = this.get('expenses') || [];
+        let expenses = this.get(this.keys.expenses) || [];
         expenses = expenses.filter(e => e.id !== id);
-        this.set('expenses', expenses);
+        this.set(this.keys.expenses, expenses);
     },
 
     updateExpense(id, expense) {
-        let expenses = this.get('expenses') || [];
+        let expenses = this.get(this.keys.expenses) || [];
         expenses = expenses.map(e => e.id === id ? { ...expense, id } : e);
-        this.set('expenses', expenses);
+        this.set(this.keys.expenses, expenses);
     },
 
     // Mileage
     addMileage(mileage) {
-        const mileageEntries = this.get('mileage') || [];
-        mileage.id = Date.now().toString();
+        const mileageEntries = this.get(this.keys.mileage) || [];
+        mileage.id = this.generateId();
         mileageEntries.push(mileage);
-        this.set('mileage', mileageEntries);
+        this.set(this.keys.mileage, mileageEntries);
         return mileage;
     },
 
     getMileage() {
-        return this.get('mileage') || [];
+        return this.get(this.keys.mileage) || [];
     },
 
     deleteMileage(id) {
-        let mileageEntries = this.get('mileage') || [];
+        let mileageEntries = this.get(this.keys.mileage) || [];
         mileageEntries = mileageEntries.filter(m => m.id !== id);
-        this.set('mileage', mileageEntries);
+        this.set(this.keys.mileage, mileageEntries);
     },
 
     updateMileage(id, mileage) {
-        let mileageEntries = this.get('mileage') || [];
+        let mileageEntries = this.get(this.keys.mileage) || [];
         mileageEntries = mileageEntries.map(m => m.id === id ? { ...mileage, id } : m);
-        this.set('mileage', mileageEntries);
+        this.set(this.keys.mileage, mileageEntries);
     },
 
     // Config
     getConfig() {
-        const today = new Date().toISOString().split('T')[0];
-        return this.get('config') || {
+        return this.get(this.keys.config) || {
             driverPassCostPerDay: 999,
-            driverPassActivationDate: today,
+            driverPassActivationDate: this.defaultDriverPassActivationDate,
             fuelConsumptionRate: 13,
             fuelPricePerLiter: 250,
             maintenanceCostPerKm: 10
@@ -147,12 +173,15 @@ const Storage = {
     },
 
     setConfig(config) {
-        this.set('config', config);
+        this.set(this.keys.config, config);
     },
 
     // Clear all data
     clearAll() {
-        localStorage.clear();
+        localStorage.removeItem(this.keys.config);
+        localStorage.removeItem(this.keys.earnings);
+        localStorage.removeItem(this.keys.expenses);
+        localStorage.removeItem(this.keys.mileage);
         this.initDefaults();
     }
 };

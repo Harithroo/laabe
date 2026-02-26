@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚗 Uber Driver Profit Calculator</h1>
+            <h1>Uber Driver Profit Calculator</h1>
             <p>Track your earnings and expenses to calculate real profit</p>
         </header>
 
@@ -35,7 +35,7 @@
                     <input type="number" id="grossFare" step="0.1" required>
                 </div>
                 <div class="form-group">
-                    <label>Total Income (₨)</label>
+                    <label>Total Income (LKR)</label>
                     <input type="number" id="commission" step="0.01" required>
                 </div>
                 <div class="form-group">
@@ -52,7 +52,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Distance (km)</th>
-                            <th>Income (₨)</th>
+                            <th>Income (LKR)</th>
                             <th>Trips</th>
                             <th></th>
                             <th></th>
@@ -94,7 +94,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Amount (₨)</label>
+                    <label>Amount (LKR)</label>
                     <input type="number" id="expenseAmount" step="0.01" required>
                 </div>
                 <div class="form-group">
@@ -175,7 +175,7 @@
             <h2>Commute & Cost Settings</h2>
             <form id="configForm">
                 <div class="form-group">
-                    <label>Driver Pass Cost per Day (₨)</label>
+                    <label>Driver Pass Cost per Day (LKR)</label>
                     <input type="number" id="driverPassCostPerDay" step="0.01" value="999" required>
                 </div>
                 <div class="form-group">
@@ -187,11 +187,11 @@
                     <input type="number" id="fuelConsumptionRate" step="0.1" value="13" required>
                 </div>
                 <div class="form-group">
-                    <label>Fuel Price per Liter (₨)</label>
+                    <label>Fuel Price per Liter (LKR)</label>
                     <input type="number" id="fuelPricePerLiter" step="0.01" value="250" required>
                 </div>
                 <div class="form-group">
-                    <label>Maintenance Cost per KM (₨) <span class="optional">Typical: 8-15 per km</span></label>
+                    <label>Maintenance Cost per KM (LKR) <span class="optional">Typical: 8-15 per km</span></label>
                     <input type="number" id="maintenanceCost" step="0.01" value="10" required>
                 </div>
                 <button type="submit" class="btn-primary">Save Settings</button>
@@ -216,15 +216,15 @@
             <div class="summary-grid">
                 <div class="summary-card">
                     <h3>Total Ride Income</h3>
-                    <p class="summary-value" id="totalRevenue">₨ 0.00</p>
+                    <p class="summary-value" id="totalRevenue">LKR 0.00</p>
                 </div>
                 <div class="summary-card">
                     <h3>Total Costs</h3>
-                    <p class="summary-value expense" id="totalExpenses">₨ 0.00</p>
+                    <p class="summary-value expense" id="totalExpenses">LKR 0.00</p>
                 </div>
                 <div class="summary-card">
                     <h3>True Net Profit</h3>
-                    <p class="summary-value" id="netProfit">₨ 0.00</p>
+                    <p class="summary-value" id="netProfit">LKR 0.00</p>
                 </div>
                 <div class="summary-card">
                     <h3>Profit Margin</h3>
@@ -246,15 +246,15 @@
                     </div>
                     <div class="metric-card">
                         <label>Cost per KM</label>
-                        <p id="costPerKm">₨ 0.00</p>
+                        <p id="costPerKm">LKR 0.00</p>
                     </div>
                     <div class="metric-card">
                         <label>Profit per KM</label>
-                        <p id="profitPerKm">₨ 0.00</p>
+                        <p id="profitPerKm">LKR 0.00</p>
                     </div>
                     <div class="metric-card">
                         <label>Profit per Day</label>
-                        <p id="hourlyProfit">₨ 0.00 / day</p>
+                        <p id="hourlyProfit">LKR 0.00 / day</p>
                     </div>
                 </div>
             </div>
@@ -294,7 +294,7 @@
                     <input type="number" id="editGrossFare" step="0.1" required>
                 </div>
                 <div class="form-group">
-                    <label>Total Income (₨)</label>
+                    <label>Total Income (LKR)</label>
                     <input type="number" id="editCommission" step="0.01" required>
                 </div>
                 <div class="form-group">
@@ -338,7 +338,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Amount (₨)</label>
+                    <label>Amount (LKR)</label>
                     <input type="number" id="editExpenseAmount" step="0.01" required>
                 </div>
                 <div class="form-group">
@@ -394,3 +394,4 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+

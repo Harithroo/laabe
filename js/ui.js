@@ -135,7 +135,7 @@ const UI = {
                 row.innerHTML = `
                     <td>${this.escapeHtml(date)}</td>
                     <td>${distance.toFixed(1)} km</td>
-                    <td>₨ ${income.toFixed(2)}</td>
+                    <td>LKR ${income.toFixed(2)}</td>
                     <td>${trips}</td>
                     <td></td>
                     <td></td>
@@ -206,7 +206,7 @@ const UI = {
                 row.innerHTML = `
                     <td>${this.escapeHtml(expense.date || 'N/A')}</td>
                     <td>${this.escapeHtml(this.getCategoryLabel(expense.category))}</td>
-                    <td>₨ ${parseFloat(expense.amount || 0).toFixed(2)}</td>
+                    <td>LKR ${parseFloat(expense.amount || 0).toFixed(2)}</td>
                     <td>${this.escapeHtml(type)}</td>
                     <td>${this.escapeHtml(expense.notes || '')}</td>
                     <td>
@@ -326,7 +326,7 @@ const UI = {
         const config = Storage.getConfig();
 
         document.getElementById('driverPassCostPerDay').value = config.driverPassCostPerDay || 999;
-        document.getElementById('driverPassActivationDate').value = config.driverPassActivationDate || new Date().toISOString().split('T')[0];
+        document.getElementById('driverPassActivationDate').value = config.driverPassActivationDate || Storage.defaultDriverPassActivationDate;
         document.getElementById('fuelConsumptionRate').value = config.fuelConsumptionRate || 13;
         document.getElementById('fuelPricePerLiter').value = config.fuelPricePerLiter || 250;
         
@@ -356,11 +356,11 @@ const UI = {
         const clearBtn = document.getElementById('clearStorageBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
-                if (confirm('⚠️  Are you absolutely sure? This will delete ALL saved data (earnings, expenses, settings). This action cannot be undone.')) {
+                if (confirm('Are you absolutely sure? This will delete ALL saved data (earnings, expenses, settings). This action cannot be undone.')) {
                     if (confirm('Click OK again to confirm you want to delete everything.')) {
                         Storage.clearAll();
                         this.renderAllData();
-                        alert('✓ All data has been cleared successfully!');
+                        alert('All data has been cleared successfully.');
                     }
                 }
             });
@@ -392,16 +392,16 @@ const UI = {
         const summary = Calculations.getMonthlySummary(yearNum, monthNum);
 
         // Update summary cards with new metrics
-        document.getElementById('totalRevenue').textContent = `₨ ${summary.totalRideIncome.toFixed(2)}`;
-        document.getElementById('totalExpenses').textContent = `₨ ${(summary.totalFuelCost + summary.allocatedDriverPassCost + summary.totalMaintenanceCost + summary.totalManualExpenses).toFixed(2)}`;
-        document.getElementById('netProfit').textContent = `₨ ${summary.trueNetProfit.toFixed(2)}`;
+        document.getElementById('totalRevenue').textContent = `LKR ${summary.totalRideIncome.toFixed(2)}`;
+        document.getElementById('totalExpenses').textContent = `LKR ${(summary.totalFuelCost + summary.allocatedDriverPassCost + summary.totalMaintenanceCost + summary.totalManualExpenses).toFixed(2)}`;
+        document.getElementById('netProfit').textContent = `LKR ${summary.trueNetProfit.toFixed(2)}`;
         document.getElementById('profitMargin').textContent = `${summary.totalRideIncome > 0 ? ((summary.trueNetProfit / summary.totalRideIncome) * 100).toFixed(2) : 0}%`;
 
         // Update metrics for new model
         document.getElementById('totalKm').textContent = `${summary.totalRideDistance.toFixed(1)} km`;
-        document.getElementById('costPerKm').textContent = `₨ ${summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost + summary.totalManualExpenses) / summary.totalRideDistance).toFixed(2) : 0}`;
-        document.getElementById('profitPerKm').textContent = `₨ ${summary.profitPerKm.toFixed(2)}`;
-        document.getElementById('hourlyProfit').textContent = `₨ ${summary.profitPerDay.toFixed(2)} / day`;
+        document.getElementById('costPerKm').textContent = `LKR ${summary.totalRideDistance > 0 ? ((summary.totalFuelCost + summary.totalMaintenanceCost + summary.allocatedDriverPassCost + summary.totalManualExpenses) / summary.totalRideDistance).toFixed(2) : 0}`;
+        document.getElementById('profitPerKm').textContent = `LKR ${summary.profitPerKm.toFixed(2)}`;
+        document.getElementById('hourlyProfit').textContent = `LKR ${summary.profitPerDay.toFixed(2)} / day`;
 
         // Show additional metrics
         this.renderNewMetricsBreakdown(summary);
@@ -416,19 +416,19 @@ const UI = {
         const items = `
             <div class="breakdown-item income-row" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6;">
                 <span><strong>Income</strong></span>
-                <span style="color: #10b981;"><strong>₨ ${summary.totalRideIncome.toFixed(2)}</strong></span>
+                <span style="color: #10b981;"><strong>LKR ${summary.totalRideIncome.toFixed(2)}</strong></span>
             </div>
             <div class="breakdown-item" style="margin-top: 10px;">
-                <span>Fuel Cost (@ ₨${(summary.totalFuelCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
-                <span>-₨ ${summary.totalFuelCost.toFixed(2)}</span>
+                <span>Fuel Cost (@ LKR ${(summary.totalFuelCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
+                <span>-LKR ${summary.totalFuelCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item">
-                <span>Maintenance (@ ₨${(summary.totalMaintenanceCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
-                <span>-₨ ${summary.totalMaintenanceCost.toFixed(2)}</span>
+                <span>Maintenance (@ LKR ${(summary.totalMaintenanceCost / Math.max(summary.totalRideDistance, 1)).toFixed(2)}/km)</span>
+                <span>-LKR ${summary.totalMaintenanceCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item" style="margin-bottom: 10px;">
                 <span>Driver Pass</span>
-                <span>-₨ ${summary.allocatedDriverPassCost.toFixed(2)}</span>
+                <span>-LKR ${summary.allocatedDriverPassCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item">
                 <span>Recorded Expenses</span>
@@ -436,11 +436,11 @@ const UI = {
             </div>
             <div class="breakdown-item" style="padding: 12px 0; border-top: 2px solid #e2e8f0; border-bottom: 2px solid #e2e8f0; font-weight: 600; margin-bottom: 10px;">
                 <span>Total Costs</span>
-                <span>-₨ ${totalCosts.toFixed(2)}</span>
+                <span>-LKR ${totalCosts.toFixed(2)}</span>
             </div>
             <div class="breakdown-item total" style="margin-top: 10px;">
                 <span>Net Profit</span>
-                <span style="color: #10b981; font-weight: 700;">₨ ${summary.trueNetProfit.toFixed(2)}</span>
+                <span style="color: #10b981; font-weight: 700;">LKR ${summary.trueNetProfit.toFixed(2)}</span>
             </div>
         `;
 
