@@ -18,6 +18,7 @@
             <button class="tab-btn active" data-tab="earnings">Earnings</button>
             <button class="tab-btn" data-tab="expenses">Expenses</button>
             <button class="tab-btn" data-tab="mileage">Mileage</button>
+            <button class="tab-btn" data-tab="passes">Passes</button>
             <button class="tab-btn" data-tab="config">Settings</button>
             <button class="tab-btn" data-tab="summary">Summary</button>
         </nav>
@@ -170,22 +171,56 @@
             </div>
         </div>
 
+        <!-- Passes Tab -->
+        <div id="passes" class="tab-content">
+            <h2>Driver Passes Management</h2>
+            
+            <div class="form-section">
+                <h3>Pass Price</h3>
+                <form id="passPriceForm">
+                    <div class="form-group">
+                        <label>Driver Pass Cost per Day (LKR)</label>
+                        <input type="number" id="passPrice" step="0.01" value="999" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Save Price</button>
+                </form>
+            </div>
+
+            <div class="form-section">
+                <h3>Add Pass Activation</h3>
+                <form id="passDateForm">
+                    <div class="form-group">
+                        <label>Activation Date</label>
+                        <input type="date" id="passDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Activation Time</label>
+                        <input type="time" id="passTime" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Pass</button>
+                </form>
+            </div>
+
+            <h2>Activated Passes</h2>
+            <div class="table-wrapper">
+                <table id="passesTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Formatted</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Settings Tab -->
         <div id="config" class="tab-content">
             <h2>Commute & Cost Settings</h2>
             <form id="configForm">
-                <div class="form-group">
-                    <label>Driver Pass Cost per Day (LKR)</label>
-                    <input type="number" id="driverPassCostPerDay" step="0.01" value="999" required>
-                </div>
-                <div class="form-group">
-                    <label>Driver Pass Activation Dates</label>
-                    <input type="text" id="driverPassActivationDates" placeholder="YYYY-MM-DD, YYYY-MM-DD">
-                </div>
-                <div class="form-group">
-                    <label>Trips Covered per Pass (24 hours)</label>
-                    <input type="number" id="tripsCoveredPerPass" min="1" step="1" value="1" required>
-                </div>
                 <div class="form-group">
                     <label>Fuel Consumption Rate (km/liter)</label>
                     <input type="number" id="fuelConsumptionRate" step="0.1" value="13" required>

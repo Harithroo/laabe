@@ -33,6 +33,7 @@ const UI = {
         this.setupEarningsForm();
         this.setupExpenseForm();
         this.setupMileageForm();
+        this.setupPassesForm();
         this.setupConfigForm();
         this.setupClearStorage();
         this.setupExportButtons();
@@ -333,13 +334,7 @@ const UI = {
     setupConfigForm() {
         const form = document.getElementById('configForm');
         const config = Storage.getConfig();
-        const activationDates = Array.isArray(config.driverPassActivationDates)
-            ? config.driverPassActivationDates
-            : (config.driverPassActivationDate ? [config.driverPassActivationDate] : []);
 
-        document.getElementById('driverPassCostPerDay').value = config.driverPassCostPerDay || 999;
-        document.getElementById('driverPassActivationDates').value = activationDates.join(', ');
-        document.getElementById('tripsCoveredPerPass').value = Math.max(1, parseInt(config.tripsCoveredPerPass, 10) || 1);
         document.getElementById('fuelConsumptionRate').value = config.fuelConsumptionRate || 13;
         document.getElementById('fuelPricePerLiter').value = config.fuelPricePerLiter || 250;
 
@@ -352,9 +347,6 @@ const UI = {
             e.preventDefault();
 
             const newConfig = {
-                driverPassCostPerDay: parseFloat(document.getElementById('driverPassCostPerDay').value),
-                driverPassActivationDates: this.parseActivationDates(document.getElementById('driverPassActivationDates').value),
-                tripsCoveredPerPass: Math.max(1, parseInt(document.getElementById('tripsCoveredPerPass').value, 10) || 1),
                 fuelConsumptionRate: parseFloat(document.getElementById('fuelConsumptionRate').value),
                 fuelPricePerLiter: parseFloat(document.getElementById('fuelPricePerLiter').value),
                 maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 10
@@ -363,6 +355,98 @@ const UI = {
             Storage.setConfig(newConfig);
             alert('Settings saved successfully!');
         });
+    },
+
+    // Passes Form
+    setupPassesForm() {
+        const priceForm = document.getElementById('passPriceForm');
+        const dateForm = document.getElementById('passDateForm');
+        const passes = Storage.getPasses();
+
+        const today = new Date().toISOString().split('T')[0];
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        document.getElementById('passDate').value = today;
+        document.getElementById('passTime').value = currentTime;
+        document.getElementById('passPrice').value = passes.passPrice || 999;
+
+        // Handle price form submission
+        priceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const price = parseFloat(document.getElementById('passPrice').value);
+            Storage.setPassPrice(price);
+            alert('Pass price updated successfully!');
+            this.renderPassesTable();
+        });
+
+        // Handle date form submission
+        dateForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('passDate').value;
+            const time = document.getElementById('passTime').value;
+            
+            if (!date || !time) {
+                alert('Please enter both date and time!');
+                return;
+            }
+
+            const dateTime = `${date}T${time}`;
+            
+            const passes = Storage.getPasses();
+            if (passes.activatedDates.some(d => d === dateTime)) {
+                alert('This date and time combination is already added!');
+                return;
+            }
+
+            Storage.addPassDate(dateTime);
+            dateForm.reset();
+            document.getElementById('passDate').value = today;
+            document.getElementById('passTime').value = currentTime;
+            this.renderPassesTable();
+            alert('Pass activation added successfully!');
+        });
+
+        this.renderPassesTable();
+    },
+
+    // Render Passes Table
+    renderPassesTable() {
+        const passes = Storage.getPasses();
+        const tbody = document.querySelector('#passesTable tbody');
+        
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!passes.activatedDates || passes.activatedDates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No passes activated yet</td></tr>';
+            return;
+        }
+
+        passes.activatedDates.forEach(dateTime => {
+            const [datePart, timePart] = dateTime.split('T');
+            const dateObj = new Date(datePart + 'T' + timePart);
+            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+            const formattedDate = dateObj.toLocaleDateString('en-US', options);
+            const timeString = timePart || '00:00';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${this.escapeHtml(datePart)}</td>
+                <td>${timeString}</td>
+                <td>${formattedDate}</td>
+                <td>
+                    <button class="btn-delete" onclick="UI.deletePassDate('${dateTime}')">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    },
+
+    deletePassDate(dateTime) {
+        if (confirm('Are you sure you want to delete this pass?')) {
+            Storage.removePassDate(dateTime);
+            this.renderPassesTable();
+        }
     },
 
     // Setup Clear Storage
@@ -404,6 +488,7 @@ const UI = {
         const monthNum = parseInt(month) - 1;
 
         const summary = Calculations.getMonthlySummary(yearNum, monthNum);
+        const config = Storage.getConfig();
 
         // Update summary cards with new metrics
         document.getElementById('totalRevenue').textContent = `LKR ${summary.totalRideIncome.toFixed(2)}`;
@@ -629,6 +714,7 @@ const UI = {
         this.renderEarningsTable();
         this.renderExpenseTable();
         this.renderMileageTable();
+        this.renderPassesTable();
         this.updateSummary();
     }
 };

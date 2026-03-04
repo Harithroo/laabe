@@ -1,16 +1,15 @@
 /**
  * Storage Module
- * Handles localStorage operations for earnings, expenses, and config
+ * Handles localStorage operations for earnings, expenses, config, and passes
  */
 
 const Storage = {
-    defaultDriverPassActivationDate: '2026-02-24',
-
     keys: {
         config: 'config',
         earnings: 'earnings',
         expenses: 'expenses',
-        mileage: 'mileage'
+        mileage: 'mileage',
+        passes: 'passes'
     },
 
     // Initialize default config
@@ -21,24 +20,16 @@ const Storage = {
         const existingConfig = this.get(this.keys.config);
         if (!existingConfig) {
             this.set(this.keys.config, {
-                driverPassCostPerDay: 999,      // LKR per day
-                driverPassActivationDates: [this.defaultDriverPassActivationDate], // Pass active dates
-                tripsCoveredPerPass: 1,         // Trips covered by one 24h pass
                 fuelConsumptionRate: 13,        // km per liter
                 fuelPricePerLiter: 250,         // LKR per liter
                 maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
             });
-        } else if (
-            existingConfig.tripsCoveredPerPass === undefined ||
-            existingConfig.driverPassActivationDates === undefined
-        ) {
-            const activationDates = Array.isArray(existingConfig.driverPassActivationDates)
-                ? existingConfig.driverPassActivationDates
-                : (existingConfig.driverPassActivationDate ? [existingConfig.driverPassActivationDate] : [this.defaultDriverPassActivationDate]);
+        } else {
+            // Remove pass-related fields if they exist
             this.set(this.keys.config, {
-                ...existingConfig,
-                driverPassActivationDates: activationDates,
-                tripsCoveredPerPass: Math.max(1, parseInt(existingConfig.tripsCoveredPerPass, 10) || 1)
+                fuelConsumptionRate: existingConfig.fuelConsumptionRate || 13,
+                fuelPricePerLiter: existingConfig.fuelPricePerLiter || 250,
+                maintenanceCostPerKm: existingConfig.maintenanceCostPerKm || 10
             });
         }
         if (!this.get(this.keys.earnings)) {
@@ -49,6 +40,12 @@ const Storage = {
         }
         if (!this.get(this.keys.mileage)) {
             this.set(this.keys.mileage, []);
+        }
+        if (!this.get(this.keys.passes)) {
+            this.set(this.keys.passes, {
+                passPrice: 999,
+                activatedDates: []
+            });
         }
     },
 
@@ -172,9 +169,6 @@ const Storage = {
     // Config
     getConfig() {
         return this.get(this.keys.config) || {
-            driverPassCostPerDay: 999,
-            driverPassActivationDates: [this.defaultDriverPassActivationDate],
-            tripsCoveredPerPass: 1,
             fuelConsumptionRate: 13,
             fuelPricePerLiter: 250,
             maintenanceCostPerKm: 10
@@ -185,12 +179,42 @@ const Storage = {
         this.set(this.keys.config, config);
     },
 
+    // Passes Management
+    getPasses() {
+        return this.get(this.keys.passes) || {
+            passPrice: 999,
+            activatedDates: []
+        };
+    },
+
+    setPassPrice(price) {
+        const passes = this.getPasses();
+        passes.passPrice = price;
+        this.set(this.keys.passes, passes);
+    },
+
+    addPassDate(date) {
+        const passes = this.getPasses();
+        if (!passes.activatedDates.includes(date)) {
+            passes.activatedDates.push(date);
+            passes.activatedDates.sort(); // Keep dates sorted
+            this.set(this.keys.passes, passes);
+        }
+    },
+
+    removePassDate(date) {
+        const passes = this.getPasses();
+        passes.activatedDates = passes.activatedDates.filter(d => d !== date);
+        this.set(this.keys.passes, passes);
+    },
+
     // Clear all data
     clearAll() {
         localStorage.removeItem(this.keys.config);
         localStorage.removeItem(this.keys.earnings);
         localStorage.removeItem(this.keys.expenses);
         localStorage.removeItem(this.keys.mileage);
+        localStorage.removeItem(this.keys.passes);
         this.initDefaults();
     }
 };
