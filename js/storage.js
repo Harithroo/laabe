@@ -22,15 +22,23 @@ const Storage = {
         if (!existingConfig) {
             this.set(this.keys.config, {
                 driverPassCostPerDay: 999,      // LKR per day
-                driverPassActivationDate: this.defaultDriverPassActivationDate, // Date pass starts charging (first day excluded)
+                driverPassActivationDates: [this.defaultDriverPassActivationDate], // Pass active dates
+                tripsCoveredPerPass: 1,         // Trips covered by one 24h pass
                 fuelConsumptionRate: 13,        // km per liter
                 fuelPricePerLiter: 250,         // LKR per liter
                 maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
             });
-        } else if (existingConfig.driverPassActivationDate === '2026-02-23') {
+        } else if (
+            existingConfig.tripsCoveredPerPass === undefined ||
+            existingConfig.driverPassActivationDates === undefined
+        ) {
+            const activationDates = Array.isArray(existingConfig.driverPassActivationDates)
+                ? existingConfig.driverPassActivationDates
+                : (existingConfig.driverPassActivationDate ? [existingConfig.driverPassActivationDate] : [this.defaultDriverPassActivationDate]);
             this.set(this.keys.config, {
                 ...existingConfig,
-                driverPassActivationDate: this.defaultDriverPassActivationDate
+                driverPassActivationDates: activationDates,
+                tripsCoveredPerPass: Math.max(1, parseInt(existingConfig.tripsCoveredPerPass, 10) || 1)
             });
         }
         if (!this.get(this.keys.earnings)) {
@@ -165,7 +173,8 @@ const Storage = {
     getConfig() {
         return this.get(this.keys.config) || {
             driverPassCostPerDay: 999,
-            driverPassActivationDate: this.defaultDriverPassActivationDate,
+            driverPassActivationDates: [this.defaultDriverPassActivationDate],
+            tripsCoveredPerPass: 1,
             fuelConsumptionRate: 13,
             fuelPricePerLiter: 250,
             maintenanceCostPerKm: 10

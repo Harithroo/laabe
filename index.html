@@ -179,8 +179,12 @@
                     <input type="number" id="driverPassCostPerDay" step="0.01" value="999" required>
                 </div>
                 <div class="form-group">
-                    <label>Driver Pass Activation Date</label>
-                    <input type="date" id="driverPassActivationDate" required>
+                    <label>Driver Pass Activation Dates</label>
+                    <input type="text" id="driverPassActivationDates" placeholder="YYYY-MM-DD, YYYY-MM-DD">
+                </div>
+                <div class="form-group">
+                    <label>Trips Covered per Pass (24 hours)</label>
+                    <input type="number" id="tripsCoveredPerPass" min="1" step="1" value="1" required>
                 </div>
                 <div class="form-group">
                     <label>Fuel Consumption Rate (km/liter)</label>

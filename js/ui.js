@@ -4,6 +4,15 @@
  */
 
 const UI = {
+    parseActivationDates(value) {
+        if (!value) return [];
+        const rawDates = value
+            .split(/[,\n]/)
+            .map(d => d.trim())
+            .filter(Boolean);
+        return rawDates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    },
+
     escapeHtml(value) {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -324,12 +333,16 @@ const UI = {
     setupConfigForm() {
         const form = document.getElementById('configForm');
         const config = Storage.getConfig();
+        const activationDates = Array.isArray(config.driverPassActivationDates)
+            ? config.driverPassActivationDates
+            : (config.driverPassActivationDate ? [config.driverPassActivationDate] : []);
 
         document.getElementById('driverPassCostPerDay').value = config.driverPassCostPerDay || 999;
-        document.getElementById('driverPassActivationDate').value = config.driverPassActivationDate || Storage.defaultDriverPassActivationDate;
+        document.getElementById('driverPassActivationDates').value = activationDates.join(', ');
+        document.getElementById('tripsCoveredPerPass').value = Math.max(1, parseInt(config.tripsCoveredPerPass, 10) || 1);
         document.getElementById('fuelConsumptionRate').value = config.fuelConsumptionRate || 13;
         document.getElementById('fuelPricePerLiter').value = config.fuelPricePerLiter || 250;
-        
+
         const maintenanceCostField = document.getElementById('maintenanceCost');
         if (maintenanceCostField) {
             maintenanceCostField.value = config.maintenanceCostPerKm || 10;
@@ -340,7 +353,8 @@ const UI = {
 
             const newConfig = {
                 driverPassCostPerDay: parseFloat(document.getElementById('driverPassCostPerDay').value),
-                driverPassActivationDate: document.getElementById('driverPassActivationDate').value,
+                driverPassActivationDates: this.parseActivationDates(document.getElementById('driverPassActivationDates').value),
+                tripsCoveredPerPass: Math.max(1, parseInt(document.getElementById('tripsCoveredPerPass').value, 10) || 1),
                 fuelConsumptionRate: parseFloat(document.getElementById('fuelConsumptionRate').value),
                 fuelPricePerLiter: parseFloat(document.getElementById('fuelPricePerLiter').value),
                 maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 10
