@@ -27,6 +27,22 @@ const UI = {
         return allowedTypes.includes(type) ? type : 'variable';
     },
 
+    normalizeApp(app) {
+        const normalized = String(app || 'uber').trim().toLowerCase();
+        if (normalized === 'hela go' || normalized === 'helago') return 'hela-go';
+        return normalized || 'uber';
+    },
+
+    getAppLabel(app) {
+        const labels = {
+            uber: 'Uber',
+            pickme: 'PickMe',
+            'hela-go': 'Hela Go'
+        };
+        const normalized = this.normalizeApp(app);
+        return labels[normalized] || normalized;
+    },
+
     // Initialize all event listeners
     init() {
         this.setupTabNavigation();
@@ -100,12 +116,15 @@ const UI = {
         const form = document.getElementById('earningsForm');
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('earningsDate').value = today;
+        const appField = document.getElementById('earningApp');
+        if (appField) appField.value = 'uber';
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
             const earning = {
                 date: document.getElementById('earningsDate').value,
+                app: this.normalizeApp(document.getElementById('earningApp').value),
                 totalRideDistance: parseFloat(document.getElementById('grossFare').value),
                 totalIncome: parseFloat(document.getElementById('commission').value),
                 numberOfTrips: parseInt(document.getElementById('tripCount').value)
@@ -114,7 +133,9 @@ const UI = {
             Storage.addEarning(earning);
             form.reset();
             document.getElementById('earningsDate').value = today;
+            if (appField) appField.value = earning.app;
             this.renderEarningsTable();
+            this.updateSummary();
             alert('Earning added successfully!');
         });
     },
@@ -129,7 +150,7 @@ const UI = {
         tbody.innerHTML = '';
 
         if (!earnings || earnings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">No earnings recorded yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No earnings recorded yet</td></tr>';
             return;
         }
 
@@ -137,6 +158,7 @@ const UI = {
             try {
                 // Validate earning data
                 const date = earning.date || 'N/A';
+                const app = this.normalizeApp(earning.app);
                 const distance = parseFloat(earning.totalRideDistance) || 0;
                 const income = parseFloat(earning.totalIncome) || 0;
                 const trips = parseInt(earning.numberOfTrips) || 0;
@@ -144,12 +166,10 @@ const UI = {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${this.escapeHtml(date)}</td>
+                    <td><span class="app-pill app-${this.escapeHtml(app)}">${this.escapeHtml(this.getAppLabel(app))}</span></td>
                     <td>${distance.toFixed(1)} km</td>
                     <td>LKR ${income.toFixed(2)}</td>
                     <td>${trips}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
                     <td>
                         <button class="btn-edit" onclick="UI.openEditEarningsModal('${earning.id}')">Edit</button>
                         <button class="btn-delete" onclick="UI.deleteEarning('${earning.id}')">Delete</button>
@@ -359,7 +379,6 @@ const UI = {
 
     // Passes Form
     setupPassesForm() {
-        const priceForm = document.getElementById('passPriceForm');
         const dateForm = document.getElementById('passDateForm');
         const passes = Storage.getPasses();
 
@@ -367,22 +386,14 @@ const UI = {
         const currentTime = new Date().toTimeString().slice(0, 5);
         document.getElementById('passDate').value = today;
         document.getElementById('passTime').value = currentTime;
-        document.getElementById('passPrice').value = passes.passPrice || 999;
-
-        // Handle price form submission
-        priceForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const price = parseFloat(document.getElementById('passPrice').value);
-            Storage.setPassPrice(price);
-            alert('Pass price updated successfully!');
-            this.renderPassesTable();
-        });
+        document.getElementById('passType').value = '24h';
 
         // Handle date form submission
         dateForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const date = document.getElementById('passDate').value;
             const time = document.getElementById('passTime').value;
+            const type = document.getElementById('passType').value;
             
             if (!date || !time) {
                 alert('Please enter both date and time!');
@@ -392,16 +403,18 @@ const UI = {
             const dateTime = `${date}T${time}`;
             
             const passes = Storage.getPasses();
-            if (passes.activatedDates.some(d => d === dateTime)) {
-                alert('This date and time combination is already added!');
+            if (passes.activations.some(a => a.dateTime === dateTime && a.type === type)) {
+                alert('This pass activation is already added!');
                 return;
             }
 
-            Storage.addPassDate(dateTime);
+            Storage.addPassDate(dateTime, type);
             dateForm.reset();
             document.getElementById('passDate').value = today;
             document.getElementById('passTime').value = currentTime;
+            document.getElementById('passType').value = '24h';
             this.renderPassesTable();
+            this.updateSummary();
             alert('Pass activation added successfully!');
         });
 
@@ -417,35 +430,38 @@ const UI = {
 
         tbody.innerHTML = '';
 
-        if (!passes.activatedDates || passes.activatedDates.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No passes activated yet</td></tr>';
+        const activations = Array.isArray(passes.activations) ? passes.activations : [];
+        if (activations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No passes activated yet</td></tr>';
             return;
         }
 
-        passes.activatedDates.forEach(dateTime => {
+        activations.forEach(activation => {
+            const dateTime = activation.dateTime;
+            const type = activation.type;
+            const passInfo = passes.passTypes[type] || { label: type, price: 0 };
             const [datePart, timePart] = dateTime.split('T');
-            const dateObj = new Date(datePart + 'T' + timePart);
-            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
-            const formattedDate = dateObj.toLocaleDateString('en-US', options);
             const timeString = timePart || '00:00';
 
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${this.escapeHtml(datePart)}</td>
                 <td>${timeString}</td>
-                <td>${formattedDate}</td>
+                <td>${this.escapeHtml(passInfo.label)}</td>
+                <td>LKR ${parseFloat(passInfo.price || 0).toFixed(2)}</td>
                 <td>
-                    <button class="btn-delete" onclick="UI.deletePassDate('${dateTime}')">Delete</button>
+                    <button class="btn-delete" onclick="UI.deletePassDate('${dateTime}','${type}')">Delete</button>
                 </td>
             `;
             tbody.appendChild(row);
         });
     },
 
-    deletePassDate(dateTime) {
+    deletePassDate(dateTime, type) {
         if (confirm('Are you sure you want to delete this pass?')) {
-            Storage.removePassDate(dateTime);
+            Storage.removePassDate(dateTime, type);
             this.renderPassesTable();
+            this.updateSummary();
         }
     },
 
@@ -468,14 +484,24 @@ const UI = {
     // Setup Summary Month Picker
     setupSummaryMonth() {
         const input = document.getElementById('summaryMonth');
+        const appFilter = document.getElementById('summaryAppFilter');
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         input.value = `${year}-${month}`;
+        if (appFilter) {
+            appFilter.value = 'all';
+        }
 
         input.addEventListener('change', () => {
             this.updateSummary();
         });
+
+        if (appFilter) {
+            appFilter.addEventListener('change', () => {
+                this.updateSummary();
+            });
+        }
     },
 
     // Update Summary
@@ -486,8 +512,9 @@ const UI = {
         const [year, month] = input.split('-');
         const yearNum = parseInt(year);
         const monthNum = parseInt(month) - 1;
+        const appFilter = this.normalizeApp(document.getElementById('summaryAppFilter')?.value || 'all');
 
-        const summary = Calculations.getMonthlySummary(yearNum, monthNum);
+        const summary = Calculations.getMonthlySummary(yearNum, monthNum, appFilter);
         const config = Storage.getConfig();
 
         // Update summary cards with new metrics
@@ -526,7 +553,7 @@ const UI = {
                 <span>-LKR ${summary.totalMaintenanceCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item" style="margin-bottom: 10px;">
-                <span>Driver Pass</span>
+                <span>Uber Pass</span>
                 <span>-LKR ${summary.allocatedDriverPassCost.toFixed(2)}</span>
             </div>
             <div class="breakdown-item">
@@ -563,8 +590,16 @@ const UI = {
                 return;
             }
             const [year, month] = input.split('-');
-            Exporter.exportSummary(parseInt(year), parseInt(month) - 1);
+            const appFilter = this.normalizeApp(document.getElementById('summaryAppFilter')?.value || 'all');
+            Exporter.exportSummary(parseInt(year), parseInt(month) - 1, appFilter);
         });
+
+        const exportAllBtn = document.getElementById('exportAllData');
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', () => {
+                Exporter.exportAllData();
+            });
+        }
     },
 
     // Setup Import Buttons
@@ -573,6 +608,8 @@ const UI = {
         const importEarningsFile = document.getElementById('importEarningsFile');
         const importExpensesBtn = document.getElementById('importExpensesBtn');
         const importExpensesFile = document.getElementById('importExpensesFile');
+        const importAllDataBtn = document.getElementById('importAllDataBtn');
+        const importAllDataFile = document.getElementById('importAllDataFile');
 
         if (importEarningsBtn && importEarningsFile) {
             importEarningsBtn.addEventListener('click', () => {
@@ -601,6 +638,19 @@ const UI = {
                 }
             });
         }
+
+        if (importAllDataBtn && importAllDataFile) {
+            importAllDataBtn.addEventListener('click', () => {
+                importAllDataFile.click();
+            });
+
+            importAllDataFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    Exporter.importAllData(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
+        }
     },
 
     // Setup Edit Forms
@@ -611,6 +661,7 @@ const UI = {
             const id = document.getElementById('editEarningsId').value;
             const earning = {
                 date: document.getElementById('editEarningsDate').value,
+                app: this.normalizeApp(document.getElementById('editEarningApp').value),
                 totalRideDistance: parseFloat(document.getElementById('editGrossFare').value),
                 totalIncome: parseFloat(document.getElementById('editCommission').value),
                 numberOfTrips: parseInt(document.getElementById('editTripCount').value)
@@ -673,6 +724,7 @@ const UI = {
         if (earning) {
             document.getElementById('editEarningsId').value = id;
             document.getElementById('editEarningsDate').value = earning.date;
+            document.getElementById('editEarningApp').value = this.normalizeApp(earning.app);
             document.getElementById('editGrossFare').value = earning.totalRideDistance;
             document.getElementById('editCommission').value = earning.totalIncome;
             document.getElementById('editTripCount').value = earning.numberOfTrips;

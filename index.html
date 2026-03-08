@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uber Driver Profit Calculator</title>
+    <meta name="theme-color" content="#0ea5a5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LAABE">
+    <title>Ride App Profit Calculator</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Uber Driver Profit Calculator</h1>
-            <p>Track your earnings and expenses to calculate real profit</p>
+            <h1>Ride App Profit Calculator</h1>
+            <p>Track Uber, PickMe, and Hela Go earnings with accurate profit breakdowns</p>
+            <button id="installAppBtn" class="btn-secondary install-btn hidden">Install App</button>
         </header>
 
         <!-- Navigation Tabs -->
@@ -30,6 +38,14 @@
                 <div class="form-group">
                     <label>Date</label>
                     <input type="date" id="earningsDate" required>
+                </div>
+                <div class="form-group">
+                    <label>App</label>
+                    <select id="earningApp" required>
+                        <option value="uber">Uber</option>
+                        <option value="pickme">PickMe</option>
+                        <option value="hela-go">Hela Go</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Total Ride Distance (km)</label>
@@ -52,12 +68,10 @@
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>App</th>
                             <th>Distance (km)</th>
                             <th>Income (LKR)</th>
                             <th>Trips</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -173,17 +187,25 @@
 
         <!-- Passes Tab -->
         <div id="passes" class="tab-content">
-            <h2>Driver Passes Management</h2>
+            <h2>Uber Passes Management</h2>
             
             <div class="form-section">
-                <h3>Pass Price</h3>
-                <form id="passPriceForm">
-                    <div class="form-group">
-                        <label>Driver Pass Cost per Day (LKR)</label>
-                        <input type="number" id="passPrice" step="0.01" value="999" required>
+                <h3>Uber Pass Types</h3>
+                <p class="pass-help">Pass cost is applied only to Uber earnings.</p>
+                <div class="pass-types">
+                    <div class="pass-type-card">
+                        <strong>4 Hours</strong>
+                        <span>LKR 559</span>
                     </div>
-                    <button type="submit" class="btn-primary">Save Price</button>
-                </form>
+                    <div class="pass-type-card">
+                        <strong>24 Hours</strong>
+                        <span>LKR 999</span>
+                    </div>
+                    <div class="pass-type-card">
+                        <strong>3 Days</strong>
+                        <span>LKR 1999</span>
+                    </div>
+                </div>
             </div>
 
             <div class="form-section">
@@ -197,6 +219,14 @@
                         <label>Activation Time</label>
                         <input type="time" id="passTime" required>
                     </div>
+                    <div class="form-group">
+                        <label>Pass Type</label>
+                        <select id="passType" required>
+                            <option value="4h">4 Hours (LKR 559)</option>
+                            <option value="24h">24 Hours (LKR 999)</option>
+                            <option value="3d">3 Days (LKR 1999)</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn-primary">Add Pass</button>
                 </form>
             </div>
@@ -208,7 +238,8 @@
                         <tr>
                             <th>Date</th>
                             <th>Time</th>
-                            <th>Formatted</th>
+                            <th>Pass Type</th>
+                            <th>Cost</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -250,6 +281,13 @@
             <div class="summary-filters">
                 <label>Month & Year:</label>
                 <input type="month" id="summaryMonth">
+                <label>App:</label>
+                <select id="summaryAppFilter">
+                    <option value="all">All Apps</option>
+                    <option value="uber">Uber</option>
+                    <option value="pickme">PickMe</option>
+                    <option value="hela-go">Hela Go</option>
+                </select>
             </div>
 
             <div class="summary-grid">
@@ -302,6 +340,7 @@
                 <button id="exportEarnings" class="btn-secondary">Export Earnings (CSV)</button>
                 <button id="exportExpenses" class="btn-secondary">Export Expenses (CSV)</button>
                 <button id="exportSummary" class="btn-secondary">Export Summary (CSV)</button>
+                <button id="exportAllData" class="btn-secondary">Export Full Backup (JSON)</button>
             </div>
 
             <div class="import-section">
@@ -309,8 +348,10 @@
                 <p>Restore your earnings or expenses from exported CSV files.</p>
                 <button id="importEarningsBtn" class="btn-secondary">Import Earnings (CSV)</button>
                 <button id="importExpensesBtn" class="btn-secondary">Import Expenses (CSV)</button>
+                <button id="importAllDataBtn" class="btn-secondary">Import Full Backup (JSON)</button>
                 <input type="file" id="importEarningsFile" accept=".csv" style="display: none;">
                 <input type="file" id="importExpensesFile" accept=".csv" style="display: none;">
+                <input type="file" id="importAllDataFile" accept=".json,application/json" style="display: none;">
             </div>
         </div>
     </div>
@@ -327,6 +368,14 @@
                 <div class="form-group">
                     <label>Date</label>
                     <input type="date" id="editEarningsDate" required>
+                </div>
+                <div class="form-group">
+                    <label>App</label>
+                    <select id="editEarningApp" required>
+                        <option value="uber">Uber</option>
+                        <option value="pickme">PickMe</option>
+                        <option value="hela-go">Hela Go</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Total Ride Distance (km)</label>
@@ -430,6 +479,7 @@
     <script src="js/calculations.js"></script>
     <script src="js/export.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/pwa.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

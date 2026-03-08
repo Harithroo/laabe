@@ -4,12 +4,21 @@
  */
 
 const Calculations = {
+    normalizeApp(app) {
+        const normalized = String(app || 'uber').trim().toLowerCase();
+        if (normalized === 'hela go' || normalized === 'helago') return 'hela-go';
+        return normalized;
+    },
+
     // Get earnings for a specific month
-    getEarningsByMonth(year, month) {
+    getEarningsByMonth(year, month, appFilter = 'all') {
         const earnings = Storage.getEarnings();
+        const app = this.normalizeApp(appFilter);
         return earnings.filter(e => {
             const date = new Date(e.date);
-            return date.getFullYear() === year && date.getMonth() === month;
+            const earningApp = this.normalizeApp(e.app);
+            const matchesApp = app === 'all' ? true : earningApp === app;
+            return date.getFullYear() === year && date.getMonth() === month && matchesApp;
         });
     },
 
@@ -30,12 +39,8 @@ const Calculations = {
      */
     calculateMetrics(earnings, config, expenses = []) {
         const passes = Storage.getPasses();
-        const driverPassCostPerDay = passes.passPrice || 999;
-        const driverPassActivationDates = Array.isArray(passes.activatedDates) ? passes.activatedDates : [];
-        // Extract just the date part from datetime strings (format: YYYY-MM-DDTHH:MM)
-        const driverPassActivationDateSet = new Set(
-            driverPassActivationDates.map(dt => dt.split('T')[0])
-        );
+        const passTypes = passes.passTypes || {};
+        const passActivations = Array.isArray(passes.activations) ? passes.activations : [];
         const fuelConsumptionRate = config.fuelConsumptionRate || 13;  // km/l
         const fuelPricePerLiter = config.fuelPricePerLiter || 250;     // LKR/l
         const maintenanceCostPerKm = config.maintenanceCostPerKm || 10; // LKR/km
@@ -64,11 +69,36 @@ const Calculations = {
         let totalRideDistance = 0;
         let totalFuelCost = 0;
         let totalMaintenanceCost = 0;
-        let allocatedDriverPassCost = 0;
+        let allocatedDriverPassCost = 0; // Uber-only pass cost allocation
         let activeDrivingDays = 0;
 
         // Sort earnings by date to process chronologically
         const sortedEarnings = [...earnings].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const uberDrivingDateSet = new Set(
+            sortedEarnings
+                .filter((earning) => this.normalizeApp(earning.app) === 'uber')
+                .map((earning) => earning.date)
+        );
+
+        // Passes are charged only for Uber operation windows that overlap Uber earning days.
+        allocatedDriverPassCost = passActivations.reduce((sum, activation) => {
+            const passType = passTypes[activation.type];
+            if (!passType) return sum;
+
+            const start = new Date(activation.dateTime);
+            if (Number.isNaN(start.getTime())) return sum;
+
+            const durationHours = parseFloat(passType.durationHours) || 0;
+            const end = new Date(start.getTime() + (durationHours * 60 * 60 * 1000));
+
+            const overlapsUberDay = [...uberDrivingDateSet].some((uberDate) => {
+                const dayStart = new Date(`${uberDate}T00:00:00`);
+                const dayEnd = new Date(dayStart.getTime() + (24 * 60 * 60 * 1000));
+                return start < dayEnd && end > dayStart;
+            });
+
+            return overlapsUberDay ? sum + (parseFloat(passType.price) || 0) : sum;
+        }, 0);
 
         // Calculate daily metrics
         sortedEarnings.forEach((earning) => {
@@ -79,11 +109,6 @@ const Calculations = {
             // Fuel cost based on consumption
             const fuelUsed = totalRideDistance_earn / fuelConsumptionRate;
             const dailyFuelCost = fuelUsed * fuelPricePerLiter;
-
-            // Check if pass is activated for this date - if yes, apply pass cost for the day
-            const isPassActive = driverPassActivationDateSet.has(earning.date);
-            const driverPassCost = isPassActive ? driverPassCostPerDay : 0;
-            allocatedDriverPassCost += driverPassCost;
 
             const dailyMaintenanceCost = totalRideDistance_earn * maintenanceCostPerKm;
 
@@ -100,8 +125,8 @@ const Calculations = {
                 numberOfTrips: numberOfTrips,
                 fuelCost: dailyFuelCost,
                 maintenanceCost: dailyMaintenanceCost,
-                driverPassCost: driverPassCost,
-                dailyNetProfit: totalIncome - dailyFuelCost - dailyMaintenanceCost - driverPassCost
+                driverPassCost: 0,
+                dailyNetProfit: totalIncome - dailyFuelCost - dailyMaintenanceCost
             });
         });
 
@@ -134,8 +159,8 @@ const Calculations = {
      * @param {number} month - Month (0-11)
      * @returns {Object} Monthly summary metrics
      */
-    getMonthlySummary(year, month) {
-        const earnings = this.getEarningsByMonth(year, month);
+    getMonthlySummary(year, month, appFilter = 'all') {
+        const earnings = this.getEarningsByMonth(year, month, appFilter);
         const expenses = this.getExpensesByMonth(year, month);
         const config = Storage.getConfig();
         return this.calculateMetrics(earnings, config, expenses);

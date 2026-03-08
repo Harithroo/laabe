@@ -4,6 +4,16 @@
  */
 
 const Exporter = {
+    getAppLabel(app) {
+        const labels = {
+            all: 'All Apps',
+            uber: 'Uber',
+            pickme: 'PickMe',
+            'hela-go': 'Hela Go'
+        };
+        return labels[String(app || '').toLowerCase()] || app;
+    },
+
     // Convert array of objects to CSV
     convertToCSV(data, headers) {
         const csvContent = [
@@ -38,12 +48,28 @@ const Exporter = {
         document.body.removeChild(link);
     },
 
+    // Download JSON file helper
+    downloadJSON(jsonContent, filename) {
+        const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
     // Export earnings to CSV
     exportEarnings() {
         const earnings = Storage.getEarnings();
-        const headers = ['Date', 'Ride Distance (km)', 'Total Income', 'Number of Trips'];
+        const headers = ['Date', 'App', 'Ride Distance (km)', 'Total Income', 'Number of Trips'];
         const data = earnings.map(e => ({
             'Date': e.date,
+            'App': e.app || 'uber',
             'Ride Distance (km)': e.totalRideDistance.toFixed(1),
             'Total Income': e.totalIncome.toFixed(2),
             'Number of Trips': e.numberOfTrips
@@ -71,17 +97,19 @@ const Exporter = {
     },
 
     // Export monthly summary to CSV
-    exportSummary(year, month) {
-        const summary = Calculations.getMonthlySummary(year, month);
+    exportSummary(year, month, appFilter = 'all') {
+        const summary = Calculations.getMonthlySummary(year, month, appFilter);
         const monthYear = new Date(year, month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        const appLabel = this.getAppLabel(appFilter);
 
-        let csvContent = `Uber Driver Profit & Loss Statement\n`;
+        let csvContent = `Ride App Profit & Loss Statement\n`;
         csvContent += `Month: ${monthYear}\n\n`;
+        csvContent += `App Filter,${appLabel}\n\n`;
         csvContent += `Total Ride Income,${summary.totalRideIncome.toFixed(2)}\n`;
         csvContent += `Total Ride Distance,${summary.totalRideDistance.toFixed(1)} km\n`;
         csvContent += `Fuel Cost,${summary.totalFuelCost.toFixed(2)}\n`;
         csvContent += `Maintenance Cost,${summary.totalMaintenanceCost.toFixed(2)}\n`;
-        csvContent += `Driver Pass Cost,${summary.allocatedDriverPassCost.toFixed(2)}\n\n`;
+        csvContent += `Uber Pass Cost,${summary.allocatedDriverPassCost.toFixed(2)}\n\n`;
         csvContent += `Recorded Expenses,${summary.totalManualExpenses.toFixed(2)}\n\n`;
         csvContent += `True Net Profit,${summary.trueNetProfit.toFixed(2)}\n`;
         csvContent += `Profit per KM,${summary.profitPerKm.toFixed(2)}\n`;
@@ -89,6 +117,26 @@ const Exporter = {
         csvContent += `Active Driving Days,${summary.activeDrivingDays}\n`;
 
         this.downloadCSV(csvContent, `Summary_${monthYear}.csv`);
+    },
+
+    // Export full local backup as JSON
+    exportAllData() {
+        const backup = {
+            exportedAt: new Date().toISOString(),
+            app: 'laabe',
+            version: 1,
+            data: {
+                earnings: Storage.getEarnings(),
+                expenses: Storage.getExpenses(),
+                mileage: Storage.getMileage(),
+                passes: Storage.getPasses(),
+                config: Storage.getConfig()
+            }
+        };
+
+        const json = JSON.stringify(backup, null, 2);
+        const date = new Date().toISOString().split('T')[0];
+        this.downloadJSON(json, `LAABE_Backup_${date}.json`);
     },
 
     // Parse CSV string to array
@@ -148,6 +196,7 @@ const Exporter = {
                     try {
                         const earning = {
                             date: row['Date'],
+                            app: row['App'] || 'uber',
                             totalRideDistance: parseFloat(row['Ride Distance (km)']) || 0,
                             totalIncome: parseFloat(row['Total Income']) || 0,
                             numberOfTrips: parseInt(row['Number of Trips']) || 0
@@ -228,6 +277,56 @@ const Exporter = {
         };
         reader.onerror = () => {
             alert('Error reading file');
+        };
+        reader.readAsText(file);
+    },
+
+    // Import full local backup from JSON (replaces existing local data)
+    importAllData(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target.result;
+                const parsed = JSON.parse(content);
+                const payload = parsed && parsed.data ? parsed.data : parsed;
+
+                if (!payload || typeof payload !== 'object') {
+                    alert('Invalid backup format.');
+                    return;
+                }
+
+                const earnings = Array.isArray(payload.earnings) ? payload.earnings : null;
+                const expenses = Array.isArray(payload.expenses) ? payload.expenses : null;
+                const mileage = Array.isArray(payload.mileage) ? payload.mileage : null;
+                const passes = payload.passes && typeof payload.passes === 'object' ? payload.passes : null;
+                const config = payload.config && typeof payload.config === 'object' ? payload.config : null;
+
+                if (!earnings || !expenses || !mileage || !passes || !config) {
+                    alert('Backup is missing required data sections.');
+                    return;
+                }
+
+                const confirmReplace = confirm('Importing full backup will replace current local data. Continue?');
+                if (!confirmReplace) return;
+
+                Storage.set(Storage.keys.earnings, earnings);
+                Storage.set(Storage.keys.expenses, expenses);
+                Storage.set(Storage.keys.mileage, mileage);
+                Storage.set(Storage.keys.passes, passes);
+                Storage.set(Storage.keys.config, config);
+
+                // Normalize/migrate imported data shape
+                Storage.initDefaults();
+
+                UI.renderAllData();
+                alert('Full backup imported successfully!');
+            } catch (error) {
+                console.error('Full backup import error:', error);
+                alert('Error importing backup: ' + error.message);
+            }
+        };
+        reader.onerror = () => {
+            alert('Error reading backup file');
         };
         reader.readAsText(file);
     }

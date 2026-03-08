@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -5,26 +7,26 @@
 }
 
 :root {
-    --primary: #1e293b;
-    --secondary: #3b82f6;
+    --primary: #102a43;
+    --secondary: #0ea5a5;
     --success: #10b981;
     --danger: #ef4444;
-    --warning: #f59e0b;
-    --light: #f8fafc;
-    --light-2: #f1f5f9;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --text-light: #64748b;
+    --warning: #f97316;
+    --light: #f7fbfc;
+    --light-2: #eef6f8;
+    --border: #dbe7ec;
+    --text: #1f2937;
+    --text-light: #5f6c7b;
     --bg-white: #ffffff;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-primary: linear-gradient(135deg, #0ea5a5 0%, #0284c7 100%);
     --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    --gradient-bg: radial-gradient(circle at top left, #e6fffb 0%, #f8fafc 40%, #f1f5f9 100%);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
     background: var(--gradient-bg);
     background-attachment: fixed;
     color: var(--text);
@@ -51,6 +53,7 @@ header {
 }
 
 header h1 {
+    font-family: 'Outfit', 'Segoe UI', sans-serif;
     font-size: 2.8rem;
     margin-bottom: 10px;
     color: var(--primary);
@@ -62,6 +65,14 @@ header p {
     color: var(--text-light);
     font-size: 1.1rem;
     font-weight: 400;
+}
+
+.install-btn {
+    margin-top: 14px;
+}
+
+.hidden {
+    display: none !important;
 }
 
 /* Navigation Tabs */
@@ -321,6 +332,38 @@ tbody tr:last-child td {
     max-width: 200px;
 }
 
+.summary-filters select {
+    flex: 1;
+    max-width: 220px;
+}
+
+.app-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.app-uber {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0369a1;
+    border-color: rgba(2, 132, 199, 0.3);
+}
+
+.app-pickme {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.app-hela-go {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -397,6 +440,37 @@ tbody tr:last-child td {
     color: var(--primary);
     font-size: 1.1rem;
     font-weight: 600;
+}
+
+.pass-help {
+    color: var(--text-light);
+    margin-bottom: 14px;
+    font-size: 0.92rem;
+}
+
+.pass-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.pass-type-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pass-type-card strong {
+    font-size: 0.9rem;
+}
+
+.pass-type-card span {
+    font-weight: 700;
+    color: var(--secondary);
 }
 
 .breakdown-table {
@@ -687,6 +761,11 @@ tbody tr:last-child td {
         width: 100%;
     }
 
+    .summary-filters select {
+        max-width: 100%;
+        width: 100%;
+    }
+
     .summary-section {
         padding: 16px;
         margin-bottom: 15px;
@@ -926,6 +1005,11 @@ tbody tr:last-child td {
     }
 
     .summary-filters input {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .summary-filters select {
         max-width: 100%;
         width: 100%;
     }
