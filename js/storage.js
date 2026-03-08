@@ -20,8 +20,8 @@ const Storage = {
         const existingConfig = this.get(this.keys.config);
         if (!existingConfig) {
             this.set(this.keys.config, {
-                fuelConsumptionRate: 13,        // km per liter
-                fuelPricePerLiter: 250,         // LKR per liter
+                fuelConsumptionRate: 12,        // km per liter
+                fuelPricePerLiter: 292,         // LKR per liter
                 maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
             });
         } else {
@@ -42,11 +42,22 @@ const Storage = {
             this.set(this.keys.mileage, []);
         }
         if (!this.get(this.keys.passes)) {
-            this.set(this.keys.passes, {
-                passPrice: 999,
-                activatedDates: []
-            });
+            this.set(this.keys.passes, this.getDefaultPasses());
+        } else {
+            const passes = this.getPasses();
+            this.set(this.keys.passes, passes);
         }
+    },
+
+    getDefaultPasses() {
+        return {
+            passTypes: {
+                '4h': { label: '4 Hours', durationHours: 4, price: 559 },
+                '24h': { label: '24 Hours', durationHours: 24, price: 999 },
+                '3d': { label: '3 Days', durationHours: 72, price: 1999 }
+            },
+            activations: []
+        };
     },
 
     // Migrate old data format to new format
@@ -63,14 +74,28 @@ const Storage = {
                         date: entry.date || new Date().toISOString().split('T')[0],
                         totalRideDistance: parseFloat(entry.grossFare) || 0,
                         totalIncome: parseFloat(entry.commission) || 0,
-                        numberOfTrips: parseInt(entry.tripCount) || 1
+                        numberOfTrips: parseInt(entry.tripCount) || 1,
+                        app: this.normalizeApp(entry.app)
                     }));
                     this.set(this.keys.earnings, migrated);
+                } else if (oldEarnings.some(entry => !entry.app)) {
+                    // Backfill app field for existing records created before multi-app support
+                    const backfilled = oldEarnings.map(entry => ({
+                        ...entry,
+                        app: this.normalizeApp(entry.app)
+                    }));
+                    this.set(this.keys.earnings, backfilled);
                 }
             }
         } catch (e) {
             console.error('Error during migration:', e);
         }
+    },
+
+    normalizeApp(app) {
+        const normalized = String(app || 'uber').trim().toLowerCase();
+        if (normalized === 'hela go' || normalized === 'helago') return 'hela-go';
+        return normalized || 'uber';
     },
 
     generateId() {
@@ -95,13 +120,18 @@ const Storage = {
     addEarning(earning) {
         const earnings = this.get(this.keys.earnings) || [];
         earning.id = this.generateId();
+        earning.app = this.normalizeApp(earning.app);
         earnings.push(earning);
         this.set(this.keys.earnings, earnings);
         return earning;
     },
 
     getEarnings() {
-        return this.get(this.keys.earnings) || [];
+        const earnings = this.get(this.keys.earnings) || [];
+        return earnings.map(entry => ({
+            ...entry,
+            app: this.normalizeApp(entry.app)
+        }));
     },
 
     deleteEarning(id) {
@@ -112,7 +142,7 @@ const Storage = {
 
     updateEarning(id, earning) {
         let earnings = this.get(this.keys.earnings) || [];
-        earnings = earnings.map(e => e.id === id ? { ...earning, id } : e);
+        earnings = earnings.map(e => e.id === id ? { ...earning, id, app: this.normalizeApp(earning.app) } : e);
         this.set(this.keys.earnings, earnings);
     },
 
@@ -181,30 +211,68 @@ const Storage = {
 
     // Passes Management
     getPasses() {
-        return this.get(this.keys.passes) || {
-            passPrice: 999,
-            activatedDates: []
+        const defaults = this.getDefaultPasses();
+        const raw = this.get(this.keys.passes);
+        if (!raw) return defaults;
+
+        const passTypes = {
+            ...defaults.passTypes,
+            ...(raw.passTypes || {})
         };
+
+        // Migration: old format { passPrice, activatedDates[] } -> new { activations[] }
+        let activations = [];
+        if (Array.isArray(raw.activations)) {
+            activations = raw.activations
+                .filter(a => a && a.dateTime)
+                .map(a => ({
+                    id: a.id || this.generateId(),
+                    dateTime: a.dateTime,
+                    type: passTypes[a.type] ? a.type : '24h'
+                }));
+        } else if (Array.isArray(raw.activatedDates)) {
+            const legacyType = raw.passPrice === 559 ? '4h' : raw.passPrice === 1999 ? '3d' : '24h';
+            activations = raw.activatedDates.map((dateTime) => ({
+                id: this.generateId(),
+                dateTime,
+                type: legacyType
+            }));
+        }
+
+        activations.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+        return { passTypes, activations };
     },
 
     setPassPrice(price) {
+        // Backwards-compatible method; now updates the 24h pass price.
         const passes = this.getPasses();
-        passes.passPrice = price;
+        passes.passTypes['24h'].price = parseFloat(price) || 999;
         this.set(this.keys.passes, passes);
     },
 
-    addPassDate(date) {
+    addPassDate(date, type = '24h') {
         const passes = this.getPasses();
-        if (!passes.activatedDates.includes(date)) {
-            passes.activatedDates.push(date);
-            passes.activatedDates.sort(); // Keep dates sorted
+        const passType = passes.passTypes[type] ? type : '24h';
+        const exists = passes.activations.some(a => a.dateTime === date && a.type === passType);
+        if (!exists) {
+            passes.activations.push({
+                id: this.generateId(),
+                dateTime: date,
+                type: passType
+            });
+            passes.activations.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
             this.set(this.keys.passes, passes);
         }
     },
 
-    removePassDate(date) {
+    removePassDate(date, type = null) {
         const passes = this.getPasses();
-        passes.activatedDates = passes.activatedDates.filter(d => d !== date);
+        passes.activations = passes.activations.filter(a => {
+            if (type) {
+                return !(a.dateTime === date && a.type === type);
+            }
+            return a.dateTime !== date;
+        });
         this.set(this.keys.passes, passes);
     },
 

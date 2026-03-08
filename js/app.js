@@ -5,6 +5,9 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     UI.init();
-    console.log('Uber Driver Profit Calculator loaded successfully');
+    if (typeof PWA !== 'undefined' && PWA.init) {
+        PWA.init();
+    }
+    console.log('Ride App Profit Calculator loaded successfully');
 });
 
