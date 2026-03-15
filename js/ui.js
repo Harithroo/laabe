@@ -356,7 +356,6 @@ const UI = {
         const config = Storage.getConfig();
 
         document.getElementById('fuelConsumptionRate').value = config.fuelConsumptionRate || 13;
-        document.getElementById('fuelPricePerLiter').value = config.fuelPricePerLiter || 250;
 
         const maintenanceCostField = document.getElementById('maintenanceCost');
         if (maintenanceCostField) {
@@ -366,15 +365,142 @@ const UI = {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
+            const existing = Storage.getConfig();
             const newConfig = {
                 fuelConsumptionRate: parseFloat(document.getElementById('fuelConsumptionRate').value),
-                fuelPricePerLiter: parseFloat(document.getElementById('fuelPricePerLiter').value),
-                maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 10
+                maintenanceCostPerKm: maintenanceCostField ? parseFloat(maintenanceCostField.value) : 10,
+                fuelPriceHistory: Array.isArray(existing.fuelPriceHistory) ? existing.fuelPriceHistory : [],
+                // Keep internal fallback (used only if no history applies)
+                fuelPricePerLiter: existing.fuelPricePerLiter
             };
 
             Storage.setConfig(newConfig);
             alert('Settings saved successfully!');
+            this.renderFuelPriceHistory();
+            this.updateSummary();
         });
+
+        this.setupFuelPriceHistory();
+    },
+
+    setupFuelPriceHistory() {
+        const form = document.getElementById('fuelPriceChangeForm');
+        const dateInput = document.getElementById('fuelPriceEffectiveDate');
+        const priceInput = document.getElementById('fuelPriceEffectiveValue');
+
+        if (!form || !dateInput || !priceInput) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+
+        const config = Storage.getConfig();
+        const todayFuelPrice = (typeof Calculations !== 'undefined' && Calculations.getFuelPricePerLiterForDate)
+            ? Calculations.getFuelPricePerLiterForDate(today, config)
+            : (config.fuelPricePerLiter || 0);
+        if (!priceInput.value) {
+            priceInput.value = todayFuelPrice || config.fuelPricePerLiter || '';
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const effectiveDate = String(dateInput.value || '').slice(0, 10);
+            const pricePerLiter = parseFloat(priceInput.value);
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+                alert('Please select a valid effective date.');
+                return;
+            }
+            if (!Number.isFinite(pricePerLiter) || pricePerLiter <= 0) {
+                alert('Please enter a valid price per liter.');
+                return;
+            }
+
+            const config = Storage.getConfig();
+            const history = Array.isArray(config.fuelPriceHistory) ? [...config.fuelPriceHistory] : [];
+            const existingIdx = history.findIndex(h => String(h?.effectiveDate || '').slice(0, 10) === effectiveDate);
+            if (existingIdx >= 0) {
+                history[existingIdx] = { effectiveDate, pricePerLiter };
+            } else {
+                history.push({ effectiveDate, pricePerLiter });
+            }
+
+            history.sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
+
+            const today = new Date().toISOString().split('T')[0];
+            const shouldUpdateCurrent = effectiveDate <= today;
+            const updatedConfigForLookup = { ...config, fuelPriceHistory: history };
+            const currentForToday = (typeof Calculations !== 'undefined' && Calculations.getFuelPricePerLiterForDate)
+                ? Calculations.getFuelPricePerLiterForDate(today, updatedConfigForLookup)
+                : (config.fuelPricePerLiter || pricePerLiter);
+
+            const newConfig = {
+                ...config,
+                fuelPriceHistory: history,
+                // Internal fallback/current value (used only when no history applies)
+                fuelPricePerLiter: shouldUpdateCurrent ? pricePerLiter : currentForToday
+            };
+
+            Storage.setConfig(newConfig);
+
+            this.renderFuelPriceHistory();
+            this.updateSummary();
+            alert('Fuel price change saved!');
+        });
+
+        this.renderFuelPriceHistory();
+    },
+
+    renderFuelPriceHistory() {
+        const tableBody = document.querySelector('#fuelPriceHistoryTable tbody');
+        if (!tableBody) return;
+
+        const config = Storage.getConfig();
+        const history = Array.isArray(config.fuelPriceHistory) ? config.fuelPriceHistory : [];
+
+        tableBody.innerHTML = '';
+
+        if (history.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;">No fuel price changes added yet</td></tr>';
+            return;
+        }
+
+        history
+            .slice()
+            .sort((a, b) => String(b.effectiveDate).localeCompare(String(a.effectiveDate)))
+            .forEach((entry) => {
+                const date = this.escapeHtml(entry.effectiveDate || '');
+                const price = parseFloat(entry.pricePerLiter) || 0;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${price.toFixed(2)}</td>
+                    <td><button class="btn-delete" onclick="UI.deleteFuelPriceChange('${date}')">Delete</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+    },
+
+    deleteFuelPriceChange(effectiveDate) {
+        const date = String(effectiveDate || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+        if (!confirm(`Delete fuel price change for ${date}?`)) return;
+
+        const config = Storage.getConfig();
+        const history = Array.isArray(config.fuelPriceHistory) ? config.fuelPriceHistory : [];
+        const nextHistory = history.filter(h => String(h?.effectiveDate || '').slice(0, 10) !== date);
+
+        const today = new Date().toISOString().split('T')[0];
+        const updatedConfigForLookup = { ...config, fuelPriceHistory: nextHistory };
+        const currentForToday = (typeof Calculations !== 'undefined' && Calculations.getFuelPricePerLiterForDate)
+            ? Calculations.getFuelPricePerLiterForDate(today, updatedConfigForLookup)
+            : config.fuelPricePerLiter;
+
+        Storage.setConfig({ ...config, fuelPriceHistory: nextHistory, fuelPricePerLiter: currentForToday });
+        this.renderFuelPriceHistory();
+        this.updateSummary();
     },
 
     // Passes Form

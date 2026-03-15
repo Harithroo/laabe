@@ -75,6 +75,17 @@ header p {
     display: none !important;
 }
 
+/* Small helper text blocks */
+.help-text {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin: 10px 0 18px;
+}
+
+.section {
+    margin-top: 10px;
+}
+
 /* Navigation Tabs */
 .tabs {
     display: flex;

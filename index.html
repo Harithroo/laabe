@@ -257,15 +257,40 @@
                     <input type="number" id="fuelConsumptionRate" step="0.1" value="13" required>
                 </div>
                 <div class="form-group">
-                    <label>Fuel Price per Liter (LKR)</label>
-                    <input type="number" id="fuelPricePerLiter" step="0.01" value="250" required>
-                </div>
-                <div class="form-group">
                     <label>Maintenance Cost per KM (LKR) <span class="optional">Typical: 8-15 per km</span></label>
                     <input type="number" id="maintenanceCost" step="0.01" value="10" required>
                 </div>
                 <button type="submit" class="btn-primary">Save Settings</button>
             </form>
+
+            <div class="section">
+                <h3>Fuel Price Changes</h3>
+                <p class="help-text">Add price changes with the date they became effective (recommended). The calculator applies the correct price for each earning date.</p>
+                <form id="fuelPriceChangeForm">
+                    <div class="form-group">
+                        <label>Effective Date</label>
+                        <input type="date" id="fuelPriceEffectiveDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Price (LKR per liter)</label>
+                        <input type="number" id="fuelPriceEffectiveValue" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn-secondary">Add / Update</button>
+                </form>
+
+                <div class="table-wrapper" style="margin-top: 12px;">
+                    <table id="fuelPriceHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Effective Date</th>
+                                <th>Price (LKR/L)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
 
             <div class="danger-zone">
                 <h3>Danger Zone</h3>

@@ -10,6 +10,35 @@ const Calculations = {
         return normalized;
     },
 
+    getFuelPricePerLiterForDate(dateStr, config) {
+        const date = String(dateStr || '').slice(0, 10);
+        const fallback = parseFloat(config?.fuelPricePerLiter);
+        const history = Array.isArray(config?.fuelPriceHistory) ? config.fuelPriceHistory : [];
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || history.length === 0) {
+            return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+        }
+
+        let bestDate = null;
+        let bestPrice = null;
+
+        for (let i = 0; i < history.length; i++) {
+            const effectiveDate = String(history[i]?.effectiveDate || '').slice(0, 10);
+            const pricePerLiter = parseFloat(history[i]?.pricePerLiter);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) || !Number.isFinite(pricePerLiter)) continue;
+            if (effectiveDate > date) continue;
+
+            if (!bestDate || effectiveDate > bestDate) {
+                bestDate = effectiveDate;
+                bestPrice = pricePerLiter;
+            }
+        }
+
+        if (Number.isFinite(bestPrice) && bestPrice > 0) return bestPrice;
+
+        return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+    },
+
     // Get earnings for a specific month
     getEarningsByMonth(year, month, appFilter = 'all') {
         const earnings = Storage.getEarnings();
@@ -41,9 +70,8 @@ const Calculations = {
         const passes = Storage.getPasses();
         const passTypes = passes.passTypes || {};
         const passActivations = Array.isArray(passes.activations) ? passes.activations : [];
-        const fuelConsumptionRate = config.fuelConsumptionRate || 13;  // km/l
-        const fuelPricePerLiter = config.fuelPricePerLiter || 250;     // LKR/l
-        const maintenanceCostPerKm = config.maintenanceCostPerKm || 10; // LKR/km
+        const fuelConsumptionRate = parseFloat(config?.fuelConsumptionRate) || 13;  // km/l
+        const maintenanceCostPerKm = parseFloat(config?.maintenanceCostPerKm) || 10; // LKR/km
 
         if (!earnings || earnings.length === 0) {
             const totalManualExpenses = (expenses || []).reduce((sum, expense) => {
@@ -108,6 +136,7 @@ const Calculations = {
 
             // Fuel cost based on consumption
             const fuelUsed = totalRideDistance_earn / fuelConsumptionRate;
+            const fuelPricePerLiter = this.getFuelPricePerLiterForDate(earning.date, config);
             const dailyFuelCost = fuelUsed * fuelPricePerLiter;
 
             const dailyMaintenanceCost = totalRideDistance_earn * maintenanceCostPerKm;
@@ -123,6 +152,7 @@ const Calculations = {
                 rideDistance: totalRideDistance_earn,
                 income: totalIncome,
                 numberOfTrips: numberOfTrips,
+                fuelPricePerLiter,
                 fuelCost: dailyFuelCost,
                 maintenanceCost: dailyMaintenanceCost,
                 driverPassCost: 0,

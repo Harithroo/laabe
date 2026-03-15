@@ -12,6 +12,51 @@ const Storage = {
         passes: 'passes'
     },
 
+    getDefaultConfig() {
+        return {
+            fuelConsumptionRate: 12,        // km per liter
+            fuelPricePerLiter: 292,         // LKR per liter (default; can be overridden by history)
+            maintenanceCostPerKm: 10,       // LKR per km (typical: 8-15)
+            fuelPriceHistory: []            // [{ effectiveDate: 'YYYY-MM-DD', pricePerLiter: number }]
+        };
+    },
+
+    normalizeConfig(raw) {
+        const defaults = this.getDefaultConfig();
+        const obj = (raw && typeof raw === 'object') ? raw : {};
+
+        const fuelConsumptionRate = parseFloat(obj.fuelConsumptionRate);
+        const fuelPricePerLiter = parseFloat(obj.fuelPricePerLiter);
+        const maintenanceCostPerKm = parseFloat(obj.maintenanceCostPerKm);
+
+        const history = Array.isArray(obj.fuelPriceHistory) ? obj.fuelPriceHistory : [];
+        const normalizedHistory = history
+            .map((h) => ({
+                effectiveDate: String(h?.effectiveDate || '').slice(0, 10),
+                pricePerLiter: parseFloat(h?.pricePerLiter)
+            }))
+            .filter((h) => /^\d{4}-\d{2}-\d{2}$/.test(h.effectiveDate) && Number.isFinite(h.pricePerLiter) && h.pricePerLiter > 0)
+            .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+
+        // Deduplicate by effectiveDate (keep the last one after sort => latest price for that day)
+        const dedupedHistory = [];
+        normalizedHistory.forEach((entry) => {
+            const last = dedupedHistory[dedupedHistory.length - 1];
+            if (last && last.effectiveDate === entry.effectiveDate) {
+                last.pricePerLiter = entry.pricePerLiter;
+            } else {
+                dedupedHistory.push({ ...entry });
+            }
+        });
+
+        return {
+            fuelConsumptionRate: Number.isFinite(fuelConsumptionRate) && fuelConsumptionRate > 0 ? fuelConsumptionRate : defaults.fuelConsumptionRate,
+            fuelPricePerLiter: Number.isFinite(fuelPricePerLiter) && fuelPricePerLiter > 0 ? fuelPricePerLiter : defaults.fuelPricePerLiter,
+            maintenanceCostPerKm: Number.isFinite(maintenanceCostPerKm) && maintenanceCostPerKm >= 0 ? maintenanceCostPerKm : defaults.maintenanceCostPerKm,
+            fuelPriceHistory: dedupedHistory
+        };
+    },
+
     // Initialize default config
     initDefaults() {
         // Migrate from old data format if needed
@@ -19,18 +64,10 @@ const Storage = {
 
         const existingConfig = this.get(this.keys.config);
         if (!existingConfig) {
-            this.set(this.keys.config, {
-                fuelConsumptionRate: 12,        // km per liter
-                fuelPricePerLiter: 292,         // LKR per liter
-                maintenanceCostPerKm: 10        // LKR per km (typical: 8-15)
-            });
+            this.set(this.keys.config, this.getDefaultConfig());
         } else {
-            // Remove pass-related fields if they exist
-            this.set(this.keys.config, {
-                fuelConsumptionRate: existingConfig.fuelConsumptionRate || 13,
-                fuelPricePerLiter: existingConfig.fuelPricePerLiter || 250,
-                maintenanceCostPerKm: existingConfig.maintenanceCostPerKm || 10
-            });
+            // Normalize/keep only config fields (backwards-compatible with older shapes)
+            this.set(this.keys.config, this.normalizeConfig(existingConfig));
         }
         if (!this.get(this.keys.earnings)) {
             this.set(this.keys.earnings, []);
@@ -198,15 +235,11 @@ const Storage = {
 
     // Config
     getConfig() {
-        return this.get(this.keys.config) || {
-            fuelConsumptionRate: 13,
-            fuelPricePerLiter: 250,
-            maintenanceCostPerKm: 10
-        };
+        return this.normalizeConfig(this.get(this.keys.config));
     },
 
     setConfig(config) {
-        this.set(this.keys.config, config);
+        this.set(this.keys.config, this.normalizeConfig(config));
     },
 
     // Passes Management
