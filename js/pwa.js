@@ -14,9 +14,31 @@ const PWA = {
     registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (window.__laabeSwReloading) return;
+                window.__laabeSwReloading = true;
+                window.location.reload();
+            });
+
+            navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+                .then((registration) => {
                     console.log('Service worker registered');
+
+                    if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+
+                    registration.addEventListener('updatefound', () => {
+                        const installing = registration.installing;
+                        if (!installing) return;
+                        installing.addEventListener('statechange', () => {
+                            if (installing.state === 'installed' && registration.waiting) {
+                                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
+                    });
+
+                    registration.update().catch(() => {});
                 })
                 .catch((err) => {
                     console.error('Service worker registration failed:', err);
